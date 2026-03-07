@@ -6,12 +6,12 @@
   "bin": {
     "create-gas-app": "./dist/index.js"
   },
-  "files": ["dist"],
+  "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "google-apps-script",
@@ -25,11 +25,15 @@
     "vite",
     "clasp"
   ],
-  "author": "",
+  "author": "Pradeep",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/create-gas-app"
+    "url": "https://github.com/vazhioli/create-gas-app"
+  },
+  "homepage": "https://github.com/vazhioli/create-gas-app#readme",
+  "bugs": {
+    "url": "https://github.com/vazhioli/create-gas-app/issues"
   },
   "dependencies": {
     "@clack/prompts": "^0.9.0",
