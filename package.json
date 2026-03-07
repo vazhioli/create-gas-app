@@ -1,0 +1,52 @@
+{
+  "name": "create-gas-app",
+  "version": "0.1.0",
+  "description": "The modern CLI to scaffold Google Apps Script apps with React, Vue, Svelte, or SolidJS",
+  "type": "module",
+  "bin": {
+    "create-gas-app": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "google-apps-script",
+    "gas",
+    "scaffold",
+    "create",
+    "react",
+    "vue",
+    "svelte",
+    "solidjs",
+    "vite",
+    "clasp"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/create-gas-app"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.9.0",
+    "execa": "^9.0.0",
+    "fs-extra": "^11.0.0",
+    "picocolors": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
