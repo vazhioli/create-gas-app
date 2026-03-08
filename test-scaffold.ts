@@ -337,6 +337,19 @@ for (const { label, config } of CONFIGS) {
     "tsconfig.json has @scope/server path alias",
   );
 
+  // ── packages/server/tsconfig.json scopes GAS types to server only ────────────
+  const serverTsconfig = JSON.parse(
+    fs.readFileSync(path.join(root, "packages/server/tsconfig.json"), "utf-8"),
+  );
+  check(
+    serverTsconfig.compilerOptions?.types?.includes("gas-types-detailed"),
+    "packages/server/tsconfig.json includes gas-types-detailed",
+  );
+  check(
+    !tsconfig.compilerOptions?.types?.includes("gas-types-detailed"),
+    "root tsconfig.json does not include gas-types-detailed",
+  );
+
   // ── .claspignore should not exclude rootDir files ───────────────────────────
   const claspIgnore = fs.readFileSync(path.join(root, ".claspignore"), "utf-8");
   check(!claspIgnore.includes("**/*"), ".claspignore does not exclude all files");

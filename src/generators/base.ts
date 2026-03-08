@@ -202,6 +202,14 @@ const workspaceTsconfig = (rootRelative: string) => ({
   include: ["src/**/*"],
 });
 
+const serverTsconfig = (rootRelative: string) => ({
+  extends: `${rootRelative}/tsconfig.json`,
+  compilerOptions: {
+    types: ["gas-types-detailed"],
+  },
+  include: ["src/**/*", "templates/**/*"],
+});
+
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 export async function generateBase(
@@ -237,7 +245,7 @@ export async function generateBase(
   );
   await writeJsonFile(
     pp("packages", "server", "tsconfig.json"),
-    workspaceTsconfig("../.."),
+    serverTsconfig("../.."),
   );
 
   // packages/ui
