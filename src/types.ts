@@ -1,7 +1,7 @@
 export type Framework = "react" | "vue" | "svelte" | "solid";
 export type GasAddonType = "sheets" | "docs" | "forms" | "standalone";
 export type PackageManager = "npm" | "pnpm" | "yarn" | "bun";
-export type Addon = "tailwind" | "shadcn" | "commitlint";
+export type Addon = "tailwind" | "shadcn" | "commitlint" | "eslint";
 
 export interface ProjectConfig {
   projectName: string;

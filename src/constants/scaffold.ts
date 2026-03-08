@@ -63,7 +63,31 @@ export const ADDON_DEPS = {
     },
     prod: {} as Record<string, string>,
   },
+  eslint: {
+    dev: {
+      eslint: "^9.20.0",
+      "@eslint/js": "^9.20.0",
+      "typescript-eslint": "^8.25.0",
+    },
+    prod: {} as Record<string, string>,
+  },
 } as const;
+
+export const ESLINT_FRAMEWORK_DEPS: Record<Framework, Record<string, string>> = {
+  react: {
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+  },
+  vue: {
+    "eslint-plugin-vue": "^9.33.0",
+  },
+  svelte: {
+    "eslint-plugin-svelte": "^2.47.0",
+  },
+  solid: {
+    "eslint-plugin-solid": "^0.14.5",
+  },
+};
 
 export const ROOT_DEV_DEPENDENCIES: Record<string, string> = {
   "@google/clasp": "^3.2.0",

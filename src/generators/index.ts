@@ -13,6 +13,7 @@ import { generatePackageJson } from "./pkg.js";
 import { generateTailwind } from "./addons/tailwind.js";
 import { generateShadcn } from "./addons/shadcn.js";
 import { generateCommitlint } from "./addons/commitlint.js";
+import { generateEslint } from "./addons/eslint.js";
 
 export async function scaffoldProject(
   root: string,
@@ -37,6 +38,7 @@ export async function scaffoldProject(
     if (config.addons.includes("shadcn")) await generateShadcn(root, config);
     if (config.addons.includes("commitlint"))
       await generateCommitlint(root, config);
+    if (config.addons.includes("eslint")) await generateEslint(root, config);
 
     spinner.stop("Project files created.");
   } catch (err) {

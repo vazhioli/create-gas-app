@@ -16,8 +16,8 @@ const CONTAINER: Partial<Record<GasAddonType, ContainerSpec>> = {
   sheets: {
     fn: "getSpreadsheetInfo",
     stateVar: "spreadsheet",
-    type: "{ id: string; name: string; activeSheet: string }",
-    fields: [["Spreadsheet", "name"], ["Sheet", "activeSheet"]],
+    type: "{ id: string; name: string; activeSheet: string; rowCount: number }",
+    fields: [["Spreadsheet", "name"], ["Sheet", "activeSheet"], ["Rows", "rowCount"]],
   },
   docs: {
     fn: "getDocumentInfo",

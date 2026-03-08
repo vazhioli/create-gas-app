@@ -112,6 +112,11 @@ export async function gatherProjectConfig(
         label: "Commitlint + Lefthook",
         hint: "Conventional commits + git hooks",
       },
+      {
+        value: "eslint",
+        label: "ESLint",
+        hint: "Flat config with TypeScript + framework rules",
+      },
     ],
     required: false,
     initialValues: ["tailwind"],

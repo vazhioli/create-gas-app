@@ -13,9 +13,28 @@ const serverIndexTs = (addonType: GasAddonType) => {
     addonType === "sheets"
       ? `
 /** Returns active spreadsheet metadata. */
-export const getSpreadsheetInfo = (): { id: string; name: string; activeSheet: string } => {
+export const getSpreadsheetInfo = (): { id: string; name: string; activeSheet: string; rowCount: number } => {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  return { id: ss.getId(), name: ss.getName(), activeSheet: ss.getActiveSheet().getName() };
+  const sheet = ss.getActiveSheet();
+  return { id: ss.getId(), name: ss.getName(), activeSheet: sheet.getName(), rowCount: sheet.getLastRow() };
+};
+
+/**
+ * Returns headers and the first N rows of data from a sheet.
+ * If sheetName is omitted, reads the active sheet.
+ *
+ * Usage: const { headers, rows } = await serverFunctions.getSheetData(undefined, 20);
+ */
+export const getSheetData = (
+  sheetName?: string,
+  maxRows = 20,
+): { headers: string[]; rows: string[][] } => {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = sheetName ? ss.getSheetByName(sheetName) ?? ss.getActiveSheet() : ss.getActiveSheet();
+  const values = sheet.getDataRange().getValues();
+  if (values.length === 0) return { headers: [], rows: [] };
+  const [headers, ...rows] = values;
+  return { headers: headers.map(String), rows: rows.slice(0, maxRows).map((r) => r.map(String)) };
 };`
       : addonType === "docs"
         ? `

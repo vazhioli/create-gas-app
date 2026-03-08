@@ -7,6 +7,7 @@ import type {
 import { writeJsonFile, projectPath } from "../utils/fs.js";
 import {
   ADDON_DEPS,
+  ESLINT_FRAMEWORK_DEPS,
   FRAMEWORK_DEPS,
   ROOT_DEV_DEPENDENCIES,
 } from "../constants/scaffold.js";
@@ -30,6 +31,7 @@ function getScripts(
   pm: PackageManager,
   addonType: GasAddonType,
   projectName: string,
+  hasEslint = false,
 ) {
   const r = (s: string) => `${pm} run ${s}`;
   const claspType = getClaspCreateType(addonType);
@@ -54,6 +56,10 @@ function getScripts(
       "mkdir -p certs && mkcert -key-file ./certs/key.pem -cert-file ./certs/cert.pem localhost 127.0.0.1",
     format: "prettier --write --ignore-unknown .",
     prepare: "lefthook install || true",
+    ...(hasEslint ? {
+      lint: "eslint .",
+      "lint:fix": "eslint . --fix",
+    } : {}),
   };
 }
 
@@ -109,6 +115,10 @@ export async function generatePackageJson(
     Object.assign(dependencies, ADDON_DEPS[addon]?.prod ?? {});
   }
 
+  if (config.addons.includes("eslint")) {
+    Object.assign(devDependencies, ESLINT_FRAMEWORK_DEPS[config.framework]);
+  }
+
   const lintStagedConfig = config.addons.includes("commitlint")
     ? { "lint-staged": { "*": "prettier --write --ignore-unknown" } }
     : {};
@@ -124,6 +134,7 @@ export async function generatePackageJson(
       config.packageManager,
       config.addonType,
       config.projectName,
+      config.addons.includes("eslint"),
     ),
     dependencies,
     devDependencies,

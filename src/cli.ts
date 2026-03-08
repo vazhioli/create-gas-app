@@ -4,8 +4,8 @@ import path from "path";
 import fs from "fs";
 import { gatherProjectConfig } from "./prompts/index.js";
 import { scaffoldProject } from "./generators/index.js";
-import type { Framework } from "./types.js";
-import { IMPORT_MAPS } from "./constants/scaffold.js";
+import type { Addon, Framework, GasAddonType, PackageManager, ProjectConfig } from "./types.js";
+import { ADDON_DEPS, ESLINT_FRAMEWORK_DEPS, IMPORT_MAPS } from "./constants/scaffold.js";
 
 const NAME_PATTERN = /^[a-z0-9_-]+$/i;
 
@@ -97,12 +97,25 @@ async function runAdd(argv: string[]): Promise<void> {
     await addDialog(name);
     return;
   }
+  if (subcommand === "addon") {
+    await runAddAddon(argv.slice(1));
+    return;
+  }
   console.error(
     pc.red(
-      `Unknown subcommand: ${subcommand}\n\nAvailable:\n  add dialog <name>`,
+      `Unknown subcommand: ${subcommand}\n\nAvailable:\n  add dialog <name>\n  add addon <name>`,
     ),
   );
   process.exit(1);
+}
+
+async function runAddAddon(argv: string[]): Promise<void> {
+  const name = argv[0];
+  if (!name) {
+    console.error(pc.red("Usage: create-gas-app add addon <name>\n  Available: tailwind, eslint, commitlint, shadcn"));
+    process.exit(1);
+  }
+  await addAddon(name);
 }
 
 async function addDialog(name: string): Promise<void> {
@@ -258,6 +271,180 @@ ${importMap}
   );
 }
 
+// ─── `create-gas-app add addon` helper functions ──────────────────────────────
+
+function detectLockfilePm(root: string): PackageManager {
+  if (fs.existsSync(path.join(root, "bun.lock"))) return "bun";
+  if (fs.existsSync(path.join(root, "pnpm-lock.yaml"))) return "pnpm";
+  if (fs.existsSync(path.join(root, "yarn.lock"))) return "yarn";
+  return "npm";
+}
+
+interface PkgJsonUpdate {
+  devDeps?: Record<string, string>;
+  deps?: Record<string, string>;
+  scripts?: Record<string, string>;
+  extra?: Record<string, unknown>;
+}
+
+async function updatePackageJson(root: string, update: PkgJsonUpdate): Promise<void> {
+  const pkgPath = path.join(root, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+  if (update.devDeps) {
+    pkg.devDependencies = { ...(pkg.devDependencies ?? {}), ...update.devDeps };
+  }
+  if (update.deps) {
+    pkg.dependencies = { ...(pkg.dependencies ?? {}), ...update.deps };
+  }
+  if (update.scripts) {
+    pkg.scripts = { ...(pkg.scripts ?? {}), ...update.scripts };
+  }
+  if (update.extra) {
+    Object.assign(pkg, update.extra);
+  }
+  const { writeJsonFile } = await import("./utils/fs.js");
+  await writeJsonFile(pkgPath, pkg);
+}
+
+async function addAddon(addonName: string): Promise<void> {
+  const supported = ["tailwind", "eslint", "commitlint", "shadcn"];
+  if (!supported.includes(addonName)) {
+    console.error(pc.red(`Unknown addon: ${addonName}\n  Available: ${supported.join(", ")}`));
+    process.exit(1);
+  }
+
+  const root = process.cwd();
+
+  // Auto-detect project from cwd
+  let projectName = "my-gas-app";
+  let framework: Framework = "react";
+  let addonType: GasAddonType = "sheets";
+  let detectedPm: PackageManager = detectLockfilePm(root);
+
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf-8"));
+    if (pkg.name) projectName = pkg.name;
+    if (pkg.dependencies?.vue) framework = "vue";
+    else if (pkg.dependencies?.svelte) framework = "svelte";
+    else if (pkg.dependencies?.["solid-js"]) framework = "solid";
+    // Detect addonType from clasp:create script
+    const claspCreate: string = pkg.scripts?.["clasp:create"] ?? "";
+    if (claspCreate.includes("--type docs")) addonType = "docs";
+    else if (claspCreate.includes("--type forms")) addonType = "forms";
+    else if (claspCreate.includes("--type standalone")) addonType = "standalone";
+    else addonType = "sheets";
+  } catch {
+    // defaults
+  }
+
+  const appRoot = path.resolve(root, "apps", projectName);
+  if (!fs.existsSync(appRoot)) {
+    console.error(pc.red(`Cannot find apps root: apps/${projectName}/. Run this command from a generated project root.`));
+    process.exit(1);
+  }
+
+  // Read existing devDeps for duplicate checking
+  let existingDevDeps: Record<string, string> = {};
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf-8"));
+    existingDevDeps = pkg.devDependencies ?? {};
+  } catch {
+    // ignore
+  }
+
+  const config: ProjectConfig = {
+    projectName,
+    framework,
+    addonType,
+    addons: [addonName as Addon],
+    packageManager: detectedPm,
+    installDeps: false,
+    initGit: false,
+  };
+
+  const pm = detectedPm;
+
+  if (addonName === "tailwind") {
+    if (existingDevDeps["tailwindcss"]) {
+      console.warn(pc.yellow("tailwindcss is already installed in devDependencies."));
+      process.exit(0);
+    }
+    const { generateTailwind } = await import("./generators/addons/tailwind.js");
+    await generateTailwind(root, config);
+    await updatePackageJson(root, {
+      devDeps: {
+        tailwindcss: "^4.1.18",
+        "@tailwindcss/vite": "^4.1.18",
+        "tw-animate-css": "^1.4.0",
+      },
+    });
+    p.note(
+      [
+        `Update ${pc.cyan("vite.config.ts")} — add the Tailwind plugin:`,
+        "",
+        `  import tailwindcss from "@tailwindcss/vite";`,
+        "",
+        `  // In serve config plugins:`,
+        `  tailwindcss(),`,
+        "",
+        `  // In build config plugins:`,
+        `  tailwindcss(),`,
+        "",
+        `Then run ${pc.cyan(`${pm} install`)}`,
+      ].join("\n"),
+      "Next steps",
+    );
+  } else if (addonName === "eslint") {
+    if (existingDevDeps["eslint"]) {
+      console.warn(pc.yellow("eslint is already installed in devDependencies."));
+      process.exit(0);
+    }
+    const { generateEslint } = await import("./generators/addons/eslint.js");
+    await generateEslint(root, config);
+    await updatePackageJson(root, {
+      devDeps: {
+        ...ADDON_DEPS.eslint.dev,
+        ...ESLINT_FRAMEWORK_DEPS[framework],
+      },
+      scripts: {
+        lint: "eslint .",
+        "lint:fix": "eslint . --fix",
+      },
+    });
+    p.log.success(`Run ${pc.cyan(`${pm} install`)} to finish setup.`);
+  } else if (addonName === "commitlint") {
+    if (existingDevDeps["@commitlint/cli"]) {
+      console.warn(pc.yellow("commitlint is already installed in devDependencies."));
+      process.exit(0);
+    }
+    const { generateCommitlint } = await import("./generators/addons/commitlint.js");
+    await generateCommitlint(root, config);
+    await updatePackageJson(root, {
+      devDeps: { ...ADDON_DEPS.commitlint.dev },
+      extra: { "lint-staged": { "*": "prettier --write --ignore-unknown" } },
+    });
+    p.log.success(`Run ${pc.cyan(`${pm} install && npx lefthook install`)} to finish setup.`);
+  } else if (addonName === "shadcn") {
+    if (framework !== "react") {
+      console.error(pc.red("shadcn/ui only supports React. Switch to React first."));
+      process.exit(1);
+    }
+    if (!existingDevDeps["tailwindcss"]) {
+      console.error(pc.red("Tailwind CSS is required. Run `create-gas-app add addon tailwind` first."));
+      process.exit(1);
+    }
+    const { generateShadcn } = await import("./generators/addons/shadcn.js");
+    const { generateTailwind } = await import("./generators/addons/tailwind.js");
+    await generateShadcn(root, config);
+    await generateTailwind(root, config);
+    await updatePackageJson(root, {
+      devDeps: { ...ADDON_DEPS.shadcn.dev },
+      deps: { ...ADDON_DEPS.shadcn.prod },
+    });
+    p.log.success(`Run ${pc.cyan(`${pm} install`)} to finish setup.`);
+  }
+}
+
 function printHelp(): void {
   console.log(`
 ${pc.bold(pc.cyan("create-gas-app"))} — Scaffold a Google Apps Script app
@@ -265,6 +452,7 @@ ${pc.bold(pc.cyan("create-gas-app"))} — Scaffold a Google Apps Script app
 ${pc.bold("Usage:")}
   npx create-gas-app [project-name] [options]
   npx create-gas-app add dialog <name>
+  npx create-gas-app add addon <name>
 
 ${pc.bold("Options:")}
   -h, --help      Show this help message
@@ -272,6 +460,7 @@ ${pc.bold("Options:")}
 
 ${pc.bold("Subcommands:")}
   add dialog <name>    Add a new dialog/sidebar app to an existing project
+  add addon <name>     Add an addon to an existing project (tailwind, eslint, commitlint, shadcn)
 
 ${pc.bold("Examples:")}
   npx create-gas-app
