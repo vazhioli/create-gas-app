@@ -1,8 +1,14 @@
 import type { Framework } from "../types.js";
 
+export const FONT_STACK =
+  "'Inter', -apple-system, BlinkMacSystemFont, Arial, Roboto, 'Helvetica Neue', sans-serif";
+
 export const FRAMEWORK_DEPS: Record<
   Framework,
-  { dependencies: Record<string, string>; devDependencies: Record<string, string> }
+  {
+    dependencies: Record<string, string>;
+    devDependencies: Record<string, string>;
+  }
 > = {
   react: {
     dependencies: { react: "^19.2.4", "react-dom": "^19.2.4" },
@@ -38,14 +44,14 @@ export const ADDON_DEPS = {
     prod: {} as Record<string, string>,
   },
   shadcn: {
-    dev: { shadcn: "^3.8.5" },
+    dev: { shadcn: "^4.0.1" },
     prod: {
       "class-variance-authority": "^0.7.1",
       clsx: "^2.1.1",
-      "tailwind-merge": "^3.4.1",
+      "tailwind-merge": "^3.5.0",
       "tw-animate-css": "^1.4.0",
-      "@radix-ui/react-slot": "^1.1.0",
-      "lucide-react": "^0.574.0",
+      "radix-ui": "^1.4.3",
+      "lucide-react": "^0.577.0",
     },
   },
   commitlint: {

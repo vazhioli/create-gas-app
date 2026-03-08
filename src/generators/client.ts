@@ -1,6 +1,6 @@
 import type { Framework, GasAddonType, ProjectConfig } from "../types.js";
 import { writeFile, projectPath } from "../utils/fs.js";
-import { IMPORT_MAPS } from "../constants/scaffold.js";
+import { FONT_STACK, IMPORT_MAPS } from "../constants/scaffold.js";
 
 // ─── Container context config by addon type ───────────────────────────────────
 // Drives state declarations, data-fetch calls, and info display in each App.
@@ -44,8 +44,7 @@ body, html {
   width: 100%;
   height: 100%;
   overflow: hidden auto;
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", Arial, Roboto,
-    "Helvetica Neue", sans-serif;
+  font-family: ${FONT_STACK};
   -webkit-font-smoothing: antialiased;
 }
 #root { width: 100%; min-height: 100%; }
@@ -59,6 +58,7 @@ body, html {
   width: 100%;
   height: 100%;
   overflow: hidden auto;
+  font-family: ${FONT_STACK};
 }
 #root { @apply w-full min-h-screen; }
 `;
@@ -72,6 +72,9 @@ const indexHtml = (title: string, entryFile: string, framework: Framework) =>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
     <script type="importmap">
 ${JSON.stringify({ imports: IMPORT_MAPS[framework] }, null, 2)}
     </script>
@@ -146,7 +149,7 @@ const reactAppTsx = (
   ];
   const loadingEl =
     uiMode === "inline"
-      ? `<div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "#475569", fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial" }}>Loading workspace…</div>`
+      ? `<div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "#475569" }}>Loading workspace…</div>`
       : `<div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading workspace…</div>`;
 
   const infoRowsInline = allRows
@@ -172,7 +175,7 @@ const reactAppTsx = (
     ? `\n          <Button variant="outline" onClick={() => serverFunctions.openAboutDialog()}>Open About</Button>`
     : "";
 
-  const bodyInline = `<div style={{ minHeight: "100vh", background: "linear-gradient(165deg, #f8fafc 0%, #eef2ff 45%, #ecfeff 100%)", padding: 20, fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial" }}>
+  const bodyInline = `<div style={{ minHeight: "100vh", background: "linear-gradient(165deg, #f8fafc 0%, #eef2ff 45%, #ecfeff 100%)", padding: 20 }}>
       <div style={{ maxWidth: 540, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
         <section style={{ borderRadius: 18, padding: 18, background: "rgba(255,255,255,0.9)", border: "1px solid #e2e8f0", boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)" }}>
           <p style={{ margin: 0, fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: "#6366f1", fontWeight: 700 }}>Google Apps Script</p>
@@ -473,7 +476,7 @@ const reactAboutAppTsx = (projectName: string, hasTailwind: boolean, hasShadcn: 
   const closeBtnTailwind = `<button onClick={() => scriptHostFunctions.close()} className="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition hover:bg-accent">Close</button>`;
   const closeBtnShadcn = `<Button variant="outline" onClick={() => scriptHostFunctions.close()}>Close</Button>`;
   const closeBtn = uiMode === "inline" ? closeBtnInline : uiMode === "tailwind" ? closeBtnTailwind : closeBtnShadcn;
-  const bodyInline = `<div style={{ minHeight: "100vh", background: "linear-gradient(165deg, #f8fafc 0%, #eef2ff 45%, #ecfeff 100%)", padding: 20, fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial" }}>
+  const bodyInline = `<div style={{ minHeight: "100vh", background: "linear-gradient(165deg, #f8fafc 0%, #eef2ff 45%, #ecfeff 100%)", padding: 20 }}>
       <div style={{ maxWidth: 520, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
         <section style={{ borderRadius: 18, padding: 18, background: "rgba(255,255,255,0.9)", border: "1px solid #e2e8f0", boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)" }}>
           <p style={{ margin: 0, fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: "#06b6d4", fontWeight: 700 }}>Dialog</p>
