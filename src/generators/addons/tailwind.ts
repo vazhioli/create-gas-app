@@ -8,7 +8,7 @@ import { writeFile, projectPath } from "../../utils/fs.js";
 const globalCssTailwind = (hasShadcn: boolean) => {
   const shadcnImports = hasShadcn
     ? `\n@import "tw-animate-css";\n@import "shadcn/tailwind.css";\n`
-    : "";
+    : `\n@import "tw-animate-css";\n`;
 
   const shadcnVars = hasShadcn
     ? `
