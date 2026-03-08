@@ -38,6 +38,7 @@ Running the CLI starts an interactive prompt:
   ◼ Tailwind CSS v4
   ◼ shadcn/ui
   ◻ Commitlint + Lefthook
+  ◻ ESLint
 
   Which package manager?
   ● bun   ○ pnpm   ○ npm   ○ yarn
@@ -324,6 +325,42 @@ Only available with React.
 
 Enforces [Conventional Commits](https://www.conventionalcommits.org/) with `@commitlint/config-conventional`. Runs Prettier on staged files via `lefthook` before each commit.
 
+### ESLint
+
+Generates `eslint.config.js` with ESLint 9 flat config, TypeScript support, and framework-specific rules:
+
+| Framework | Extra plugins |
+| --------- | ------------- |
+| React     | `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh` |
+| Vue       | `eslint-plugin-vue` |
+| Svelte    | `eslint-plugin-svelte` |
+| SolidJS   | `eslint-plugin-solid` |
+
+Adds `lint` and `lint:fix` scripts to `package.json`.
+
+---
+
+## Adding addons to an existing project
+
+Addons can be added after scaffolding with the `add addon` subcommand:
+
+```bash
+npx create-gas-app add addon tailwind
+npx create-gas-app add addon eslint
+npx create-gas-app add addon commitlint
+npx create-gas-app add addon shadcn
+```
+
+Run from the project root. The command auto-detects your framework and project name, writes the addon files, and updates `package.json` with the required dependencies. Then install:
+
+```bash
+npm install
+```
+
+For `tailwind`, the command also prints the exact lines to add to `vite.config.ts` since that file may have been edited.
+
+> **Note:** `shadcn` requires React and Tailwind to be installed first.
+
 ---
 
 ## Scripts reference
@@ -341,6 +378,8 @@ Enforces [Conventional Commits](https://www.conventionalcommits.org/) with `@com
 | `clasp:open:script`    | Open the Apps Script editor in your browser                 |
 | `clasp:open:container` | Open the linked Sheets/Docs/Forms file                      |
 | `format`               | Format all files with Prettier                              |
+| `lint`                 | Run ESLint (only if ESLint addon was selected)              |
+| `lint:fix`             | Run ESLint with auto-fix                                    |
 
 Override the dev port:
 
