@@ -133,7 +133,10 @@ const clientBuildConfig = (appDir: string, template: string) =>
     esbuild: { legalComments: "none" },
   });
 
-// ─── Server build (packages/server → dist/code.js IIFE) ──────────────────────
+// ─── Server build (packages/server → dist/code.js ES, exports stripped) ──────
+// GAS needs functions as top-level declarations — ES format produces that,
+// but Rollup appends "export { fn1, fn2, ... }" which GAS doesn't support.
+// The plugin below strips that trailing export statement.
 
 const serverBuildConfig: BuildOptions = {
   emptyOutDir: true,
@@ -141,16 +144,19 @@ const serverBuildConfig: BuildOptions = {
   lib: {
     entry: resolve(__dirname, SERVER_ENTRY),
     fileName: "code",
-    name: "globalThis",
-    formats: ["iife"],
+    formats: ["es"],
   },
   rollupOptions: {
+    plugins: [
+      {
+        name: "strip-gas-exports",
+        renderChunk(code: string) {
+          return { code: code.replace(/\\nexport\\s*\\{[^}]*\\};\\s*$/, ""), map: null };
+        },
+      },
+    ],
     output: {
       entryFileNames: "code.js",
-      extend: true,
-      // GAS requires every exported function to exist as a top-level declaration.
-      footer: (chunk) =>
-        chunk.exports.map((fn) => \`function \${fn}() {};\`).join("\\n"),
     },
   },
 };
