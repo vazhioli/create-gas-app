@@ -9,23 +9,11 @@ import {
   ADDON_DEPS,
   ESLINT_FRAMEWORK_DEPS,
   FRAMEWORK_DEPS,
+  GAS_CLIENT_DEP,
   ROOT_DEV_DEPENDENCIES,
 } from "../constants/scaffold.js";
 
 // ─── Scripts ──────────────────────────────────────────────────────────────────
-
-function getClaspCreateType(addonType: GasAddonType): string {
-  switch (addonType) {
-    case "sheets":
-      return "sheets";
-    case "docs":
-      return "docs";
-    case "forms":
-      return "forms";
-    case "standalone":
-      return "standalone";
-  }
-}
 
 function getScripts(
   pm: PackageManager,
@@ -34,7 +22,7 @@ function getScripts(
   hasEslint = false,
 ) {
   const r = (s: string) => `${pm} run ${s}`;
-  const claspType = getClaspCreateType(addonType);
+  const claspType = addonType;
   const openContainerScript =
     addonType === "standalone"
       ? "echo 'No container for standalone projects'"
@@ -79,7 +67,7 @@ const appPkg = (
     private: true,
     type: "module",
     dependencies: {
-      "gas-client": "^1.2.1",
+      "gas-client": GAS_CLIENT_DEP,
       ...fwDeps,
       ...(hasUi ? { [`${scope}/ui`]: "workspace:*" } : {}),
       [`${scope}/shared`]: "workspace:*",
@@ -106,7 +94,7 @@ export async function generatePackageJson(
   // ── Runtime deps shared across packages go at root ─────────────────────────
   // (hoisted by workspaces — keeps each package.json lean)
   const dependencies: Record<string, string> = {
-    "gas-client": "^1.2.1",
+    "gas-client": GAS_CLIENT_DEP,
     ...fw.dependencies,
   };
 

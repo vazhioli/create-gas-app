@@ -5,9 +5,7 @@ import fs from "fs";
 import { gatherProjectConfig } from "./prompts/index.js";
 import { scaffoldProject } from "./generators/index.js";
 import type { Addon, Framework, GasAddonType, PackageManager, ProjectConfig } from "./types.js";
-import { ADDON_DEPS, ESLINT_FRAMEWORK_DEPS, IMPORT_MAPS } from "./constants/scaffold.js";
-
-const NAME_PATTERN = /^[a-z0-9_-]+$/i;
+import { ADDON_DEPS, APP_SERVICE, ESLINT_FRAMEWORK_DEPS, IMPORT_MAPS, NAME_PATTERN } from "./constants/scaffold.js";
 
 function validateName(value: string, label: string): void {
   if (!NAME_PATTERN.test(value)) {
@@ -80,6 +78,34 @@ export async function run(argv: string[]): Promise<void> {
   await scaffoldProject(root, config);
 }
 
+// ─── Project auto-detection ───────────────────────────────────────────────────
+
+interface DetectedProjectConfig {
+  projectName: string;
+  framework: Framework;
+  addonType: GasAddonType;
+}
+
+function detectProjectConfig(root: string): DetectedProjectConfig {
+  let projectName = "my-gas-app";
+  let framework: Framework = "react";
+  let addonType: GasAddonType = "sheets";
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf-8"));
+    if (pkg.name) projectName = pkg.name;
+    if (pkg.dependencies?.vue) framework = "vue";
+    else if (pkg.dependencies?.svelte) framework = "svelte";
+    else if (pkg.dependencies?.["solid-js"]) framework = "solid";
+    const claspCreate: string = pkg.scripts?.["clasp:create"] ?? "";
+    if (claspCreate.includes("--type docs")) addonType = "docs";
+    else if (claspCreate.includes("--type forms")) addonType = "forms";
+    else if (claspCreate.includes("--type standalone")) addonType = "standalone";
+  } catch {
+    // defaults
+  }
+  return { projectName, framework, addonType };
+}
+
 // ─── `create-gas-app add` subcommand ─────────────────────────────────────────
 
 async function runAdd(argv: string[]): Promise<void> {
@@ -125,34 +151,14 @@ async function addDialog(name: string): Promise<void> {
   validateName(dialogName, "dialog name");
 
   // Detect project name, framework, and addon type from root package.json
-  let projectName = "my-gas-app";
-  let framework: Framework = "react";
-  let addonType: GasAddonType = "sheets";
-  try {
-    const pkg = JSON.parse(
-      fs.readFileSync(path.join(root, "package.json"), "utf-8"),
-    );
-    if (pkg.name) projectName = pkg.name;
-    if (pkg.dependencies?.vue) framework = "vue";
-    else if (pkg.dependencies?.svelte) framework = "svelte";
-    else if (pkg.dependencies?.["solid-js"]) framework = "solid";
-    const claspCreate: string = pkg.scripts?.["clasp:create"] ?? "";
-    if (claspCreate.includes("--type docs")) addonType = "docs";
-    else if (claspCreate.includes("--type forms")) addonType = "forms";
-    else if (claspCreate.includes("--type standalone")) addonType = "standalone";
-  } catch {
-    // defaults
-  }
+  const { projectName, framework, addonType } = detectProjectConfig(root);
 
   if (addonType === "standalone") {
     console.error(pc.red("Standalone scripts have no getUi() — dialogs only apply to add-on project types (sheets, docs, forms)."));
     process.exit(1);
   }
 
-  const appService =
-    addonType === "docs" ? "DocumentApp" :
-    addonType === "forms" ? "FormApp" :
-    "SpreadsheetApp";
+  const appService = APP_SERVICE[addonType];
 
   const appRoot = path.resolve(root, "apps", projectName);
   if (!isInside(root, appRoot)) {
@@ -331,26 +337,8 @@ async function addAddon(addonName: string): Promise<void> {
   const root = process.cwd();
 
   // Auto-detect project from cwd
-  let projectName = "my-gas-app";
-  let framework: Framework = "react";
-  let addonType: GasAddonType = "sheets";
+  const { projectName, framework, addonType } = detectProjectConfig(root);
   let detectedPm: PackageManager = detectLockfilePm(root);
-
-  try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf-8"));
-    if (pkg.name) projectName = pkg.name;
-    if (pkg.dependencies?.vue) framework = "vue";
-    else if (pkg.dependencies?.svelte) framework = "svelte";
-    else if (pkg.dependencies?.["solid-js"]) framework = "solid";
-    // Detect addonType from clasp:create script
-    const claspCreate: string = pkg.scripts?.["clasp:create"] ?? "";
-    if (claspCreate.includes("--type docs")) addonType = "docs";
-    else if (claspCreate.includes("--type forms")) addonType = "forms";
-    else if (claspCreate.includes("--type standalone")) addonType = "standalone";
-    else addonType = "sheets";
-  } catch {
-    // defaults
-  }
 
   const appRoot = path.resolve(root, "apps", projectName);
   if (!fs.existsSync(appRoot)) {
@@ -386,13 +374,7 @@ async function addAddon(addonName: string): Promise<void> {
     }
     const { generateTailwind } = await import("./generators/addons/tailwind.js");
     await generateTailwind(root, config);
-    await updatePackageJson(root, {
-      devDeps: {
-        tailwindcss: "^4.1.18",
-        "@tailwindcss/vite": "^4.1.18",
-        "tw-animate-css": "^1.4.0",
-      },
-    });
+    await updatePackageJson(root, { devDeps: { ...ADDON_DEPS.tailwind.dev } });
     p.note(
       [
         `Update ${pc.cyan("vite.config.ts")} — add the Tailwind plugin:`,

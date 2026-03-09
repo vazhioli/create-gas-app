@@ -1,4 +1,5 @@
 import type { Framework, GasAddonType, ProjectConfig } from "../types.js";
+import { hasTailwind } from "../types.js";
 import { writeFile, projectPath } from "../utils/fs.js";
 import { FONT_STACK, IMPORT_MAPS } from "../constants/scaffold.js";
 
@@ -656,32 +657,32 @@ function getFrameworkFiles(
   config: ProjectConfig,
   projectName: string,
 ): { mainContent: string; appContent: string; aboutAppContent: string } {
-  const hasTailwind = config.addons.includes("tailwind") || config.addons.includes("shadcn");
+  const tw = hasTailwind(config.addons);
   const hasShadcn = config.addons.includes("shadcn");
   switch (config.framework) {
     case "react":
       return {
         mainContent: reactMainTsx(projectName),
-        appContent: reactAppTsx(projectName, hasTailwind, hasShadcn, config.addonType),
-        aboutAppContent: reactAboutAppTsx(projectName, hasTailwind, hasShadcn),
+        appContent: reactAppTsx(projectName, tw, hasShadcn, config.addonType),
+        aboutAppContent: reactAboutAppTsx(projectName, tw, hasShadcn),
       };
     case "vue":
       return {
         mainContent: vueMainTs(projectName),
-        appContent: vueAppVue(projectName, hasTailwind, config.addonType),
-        aboutAppContent: vueAboutAppVue(projectName, hasTailwind),
+        appContent: vueAppVue(projectName, tw, config.addonType),
+        aboutAppContent: vueAboutAppVue(projectName, tw),
       };
     case "svelte":
       return {
         mainContent: svelteMainTs(projectName),
-        appContent: svelteAppSvelte(projectName, hasTailwind, config.addonType),
-        aboutAppContent: svelteAboutAppSvelte(projectName, hasTailwind),
+        appContent: svelteAppSvelte(projectName, tw, config.addonType),
+        aboutAppContent: svelteAboutAppSvelte(projectName, tw),
       };
     case "solid":
       return {
         mainContent: solidMainTsx(projectName),
-        appContent: solidAppTsx(projectName, hasTailwind, config.addonType),
-        aboutAppContent: solidAboutAppTsx(projectName, hasTailwind),
+        appContent: solidAppTsx(projectName, tw, config.addonType),
+        aboutAppContent: solidAboutAppTsx(projectName, tw),
       };
   }
 }
@@ -693,12 +694,12 @@ export async function generateClient(
   config: ProjectConfig,
 ): Promise<void> {
   const pp = (...s: string[]) => projectPath(root, ...s);
-  const hasTailwind = config.addons.includes("tailwind") || config.addons.includes("shadcn");
+  const tw = hasTailwind(config.addons);
 
   // packages/shared — styles
   await writeFile(
     pp("packages", "shared", "src", "styles", "global.css"),
-    hasTailwind ? globalCssTailwind : globalCssBase,
+    tw ? globalCssTailwind : globalCssBase,
   );
   await writeFile(pp("apps", config.projectName, "env.ts"), appEnvTs());
 

@@ -1,5 +1,6 @@
 import type { GasAddonType, ProjectConfig } from "../types.js";
 import { writeFile, writeJsonFile, projectPath } from "../utils/fs.js";
+import { GAS_CLIENT_ESM_URL } from "../constants/scaffold.js";
 
 // ─── appsscript.json ─────────────────────────────────────────────────────────
 
@@ -121,7 +122,7 @@ const devServerWrapperHtml = () => `<!--
     <script type="importmap">
       {
         "imports": {
-          "gas-client": "https://esm.sh/gas-client@1.2.1"
+          "gas-client": "${GAS_CLIENT_ESM_URL}"
         }
       }
     </script>

@@ -13,6 +13,10 @@ export interface ProjectConfig {
   initGit: boolean;
 }
 
+export function hasTailwind(addons: Addon[]): boolean {
+  return addons.includes("tailwind") || addons.includes("shadcn");
+}
+
 export interface EntrypointConfig {
   name: string;       // Display name: "Sidebar"
   filename: string;   // Output filename: "sidebar"

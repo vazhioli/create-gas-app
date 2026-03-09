@@ -1,4 +1,5 @@
 import type { Framework, ProjectConfig } from "../types.js";
+import { hasTailwind } from "../types.js";
 import { writeFile, projectPath } from "../utils/fs.js";
 import { CLIENT_EXTERNALS } from "../constants/scaffold.js";
 
@@ -26,12 +27,12 @@ const FRAMEWORK_PLUGIN: Record<
 
 const viteConfigTs = (config: ProjectConfig) => {
   const fw = FRAMEWORK_PLUGIN[config.framework];
-  const hasTailwind = config.addons.includes("tailwind") || config.addons.includes("shadcn");
+  const tw = hasTailwind(config.addons);
   const scope = `@${config.projectName}`;
   const clientExternals = JSON.stringify(CLIENT_EXTERNALS[config.framework]);
 
-  const tailwindImport = hasTailwind ? `import tailwindcss from "@tailwindcss/vite";\n` : "";
-  const tailwindPlugin = hasTailwind ? "\n    tailwindcss()," : "";
+  const tailwindImport = tw ? `import tailwindcss from "@tailwindcss/vite";\n` : "";
+  const tailwindPlugin = tw ? "\n    tailwindcss()," : "";
 
   return `import { existsSync, readFileSync } from "fs";
 import { writeFile } from "fs/promises";

@@ -1,5 +1,7 @@
 import type { GasAddonType, ProjectConfig } from "../types.js";
+import { hasTailwind } from "../types.js";
 import { writeFile, projectPath } from "../utils/fs.js";
+import { APP_SERVICE } from "../constants/scaffold.js";
 
 // ─── packages/server/src/index.ts ────────────────────────────────────────────
 
@@ -108,12 +110,7 @@ export const doPost = (_e: GoogleAppsScript.Events.DoPost) => {
 `;
   }
 
-  const appService =
-    addonType === "docs"
-      ? "DocumentApp"
-      : addonType === "forms"
-        ? "FormApp"
-        : "SpreadsheetApp";
+  const appService = APP_SERVICE[addonType];
 
   return `// HtmlService — opens sidebars and dialogs from the GAS add-on menu.
 // These run server-side only; they are NOT called directly by the client.
@@ -226,8 +223,7 @@ export async function generateServer(
   config: ProjectConfig,
 ): Promise<void> {
   const pp = (...s: string[]) => projectPath(root, ...s);
-  const hasTailwind =
-    config.addons.includes("tailwind") || config.addons.includes("shadcn");
+  const tw = hasTailwind(config.addons);
 
   // packages/server
   await writeFile(
@@ -247,7 +243,7 @@ export async function generateServer(
   );
   await writeFile(
     pp("packages", "shared", "src", "utils.ts"),
-    sharedUtilsTs(hasTailwind),
+    sharedUtilsTs(tw),
   );
   await writeFile(pp("packages", "shared", "src", "index.ts"), sharedIndexTs());
 

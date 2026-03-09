@@ -8,8 +8,7 @@ import type {
   ProjectConfig,
 } from "../types.js";
 import { detectPackageManager } from "../utils/pkgManager.js";
-
-const NAME_PATTERN = /^[a-z0-9_-]+$/i;
+import { NAME_PATTERN } from "../constants/scaffold.js";
 
 function validateProjectName(value: string): string | undefined {
   const trimmed = value.trim();
