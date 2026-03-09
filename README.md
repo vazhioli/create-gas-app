@@ -221,6 +221,69 @@ Deploy via **Deploy → New deployment → Web app** in the Apps Script editor.
 
 ---
 
+## OAuth scopes
+
+Google Apps Script requires explicit OAuth scopes to access Google services. Scopes are declared in `appsscript.json` at the project root:
+
+```json
+{
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/script.external_request"
+  ]
+}
+```
+
+Common scopes you may need:
+
+| Scope | When to add it |
+| ----- | -------------- |
+| `https://www.googleapis.com/auth/script.external_request` | Calling external APIs with `UrlFetchApp` |
+| `https://www.googleapis.com/auth/script.scriptapp` | Creating or managing installable triggers |
+| `https://www.googleapis.com/auth/script.send_mail` | Sending email on behalf of the user via `MailApp` |
+| `https://www.googleapis.com/auth/spreadsheets` | Reading or writing Google Sheets data |
+| `https://www.googleapis.com/auth/documents` | Reading or writing Google Docs data |
+| `https://www.googleapis.com/auth/forms` | Reading or writing Google Forms data |
+
+### Handling granular OAuth
+
+Google OAuth is granular — users are shown each requested scope individually and may choose to grant only some of them. Use `ScriptApp.requireScopes()` to validate that the user has granted the specific scopes a function needs, or `ScriptApp.requireAllScopes()` if a function depends on every scope declared in `appsscript.json`. Both methods end execution immediately and prompt the user for authorization if any required scope is missing.
+
+```typescript
+// Use requireScopes() when a function only needs a subset of your declared scopes.
+// Here, fetchAndLog() only needs external request access — not triggers or mail.
+export const fetchAndLog = () => {
+  ScriptApp.requireScopes(ScriptApp.AuthMode.FULL, [
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/spreadsheets",
+  ]);
+
+  const response = UrlFetchApp.fetch("https://api.example.com/data");
+  const data = JSON.parse(response.getContentText());
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  sheet.getRange(sheet.getLastRow() + 1, 1).setValue(data.value);
+};
+
+// Use requireAllScopes() when a function relies on every scope in appsscript.json.
+export const fullSync = () => {
+  ScriptApp.requireAllScopes(ScriptApp.AuthMode.FULL);
+
+  const response = UrlFetchApp.fetch("https://api.example.com/data");
+  const data = JSON.parse(response.getContentText());
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  sheet.getRange(sheet.getLastRow() + 1, 1).setValue(data.value);
+
+  ScriptApp.newTrigger("fullSync").timeBased().everyHours(1).create();
+  MailApp.sendEmail(Session.getActiveUser().getEmail(), "Sync complete", "Data updated.");
+};
+```
+
+See the [Google Apps Script scopes documentation](https://developers.google.com/apps-script/concepts/scopes#handle-granular) for the full guide on detecting missing scopes and triggering the authorization popup.
+
+---
+
 ## Common patterns
 
 ### Type-safe server calls
