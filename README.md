@@ -389,6 +389,15 @@ PORT=5173 npm run dev
 
 ---
 
+## Acknowledgements
+
+The Sheets add-on architecture is heavily inspired by [enuchi/React-Google-Apps-Script](https://github.com/enuchi/React-Google-Apps-Script) — the original template that pioneered bundling React apps into GAS dialogs with a Webpack + Babel setup. Two of his packages are core dependencies of every generated project:
+
+- [**gas-client**](https://github.com/enuchi/gas-client) — the promise-based wrapper around `google.script.run` that powers all type-safe server calls
+- [**gas-types-detailed**](https://github.com/enuchi/gas-types-detailed) — comprehensive TypeScript type definitions for the entire Google Apps Script API
+
+---
+
 ## Contributing
 
 ```bash
