@@ -12,6 +12,13 @@ npx create-gas-app@latest my-sheets-addon
 
 ---
 
+## Prerequisites
+
+- **Node.js ≥ 18**
+- **mkcert** *(optional, for local dev server)* — generates trusted local HTTPS certs. [Install instructions](https://github.com/FiloSottile/mkcert#installation)
+
+---
+
 ## Create a project
 
 Running the CLI starts an interactive prompt:
@@ -20,7 +27,7 @@ Running the CLI starts an interactive prompt:
   create-gas-app — Google Apps Script, your way
 
   What is your project named?
-  › my-sheets-addon
+  › my-gas-app
 
   What type of Google Apps Script project?
   ● Sheets Add-on
@@ -47,19 +54,21 @@ Running the CLI starts an interactive prompt:
   Initialize a git repository? Yes
 ```
 
+> **Note:** All command examples below use `npm run`. Substitute `bun run`, `pnpm run`, or `yarn` depending on what you chose at scaffold time.
+
 ---
 
-## Sheets Add-on
+## Getting started
 
-A Sheets add-on appears in the **Extensions** menu and opens sidebars and dialogs inside Google Sheets. This is the most feature-complete project type.
+All project types share the same Vite monorepo structure and the same workflow. Pick your project type during scaffolding — the rest is identical.
 
 ### Generated structure
 
 ```
-my-sheets-addon/
+my-gas-app/
 ├── apps/
-│   └── my-sheets-addon/
-│       ├── env.ts                    ← Runtime env (sheet ID, named ranges, etc.) — gitignored
+│   └── my-gas-app/
+│       ├── env.ts                    ← Runtime env — gitignored
 │       └── dialogs/
 │           ├── sidebar/
 │           │   ├── index.html        ← importmap + entry script (no bundled deps)
@@ -94,7 +103,7 @@ my-sheets-addon/
 Authenticate once with your Google account:
 
 ```bash
-npx clasp login
+npm run clasp:login
 ```
 
 Then create a new GAS project and link it to your repo:
@@ -126,7 +135,7 @@ npm run setup:certs
 npm run dev
 ```
 
-This pushes lightweight iframe wrappers to GAS, then starts Vite at `https://localhost:3000`. Open your Google Sheet → **Extensions → My Sheets Addon → Open** — the sidebar loads your local Vite app with full hot reload.
+This pushes lightweight iframe wrappers to GAS, then starts Vite at `https://localhost:3000`. Open your Google Sheet / Doc / Form → **Extensions → My App → Open** — the sidebar loads your local Vite app with full hot reload.
 
 `google.script.run` calls are proxied through a postMessage bridge so real server functions execute in GAS while your UI hot-reloads locally.
 
@@ -140,12 +149,85 @@ Builds all dialogs to single inlined HTML files, builds the server to a single I
 
 ---
 
+## Project types
+
+All project types share the same structure and workflow. The differences are which GAS service is used server-side and what starter functions are generated.
+
+### Sheets Add-on
+
+Extends Google Sheets. Uses `SpreadsheetApp.getUi()` for the Extensions menu. The generated starter functions:
+
+```typescript
+// Returns spreadsheet name, active sheet name, and row count
+export const getSpreadsheetInfo = (): {
+  id: string; name: string; activeSheet: string; rowCount: number;
+} => { ... };
+
+// Returns headers + first N rows of a sheet
+export const getSheetData = (sheetName?: string, maxRows = 20): {
+  headers: string[]; rows: string[][];
+} => { ... };
+```
+
+### Docs Add-on
+
+Extends Google Docs. Uses `DocumentApp.getUi()` for the Extensions menu. The generated starter function:
+
+```typescript
+export const getDocumentInfo = (): { id: string; name: string } => {
+  const doc = DocumentApp.getActiveDocument();
+  return { id: doc.getId(), name: doc.getName() };
+};
+```
+
+### Forms Add-on
+
+Extends the **Google Forms editor** — adds sidebars, dialogs, and menu items to the form editing interface. It does not modify the form that respondents see. Uses `FormApp.getUi()` for the Extensions menu.
+
+The generated starter function:
+
+```typescript
+export const getFormInfo = (): { id: string; title: string } => {
+  const form = FormApp.getActiveForm();
+  return { id: form.getId(), title: form.getTitle() };
+};
+```
+
+Forms add-ons also support installable triggers. For example, running a function every time a respondent submits the form:
+
+```typescript
+export const onFormSubmit = (e: GoogleAppsScript.Events.FormsOnFormSubmit): void => {
+  const response = e.response;
+  // process response...
+};
+```
+
+### Standalone Script
+
+A standalone script has no container. It is deployed as a **web app** and responds to HTTP requests via `doGet` and `doPost`. There is no Extensions menu and no `onOpen` trigger.
+
+```typescript
+export const doGet = (_e: GoogleAppsScript.Events.DoGet) => {
+  return HtmlService.createHtmlOutputFromFile("sidebar").setTitle("My App");
+};
+
+export const doPost = (_e: GoogleAppsScript.Events.DoPost) => {
+  return ContentService.createTextOutput(JSON.stringify({ status: "ok" }))
+    .setMimeType(ContentService.MimeType.JSON);
+};
+```
+
+Deploy via **Deploy → New deployment → Web app** in the Apps Script editor.
+
+---
+
+## Common patterns
+
 ### Type-safe server calls
 
 Define functions in `packages/server/src/index.ts`:
 
 ```typescript
-// packages/server/src/index.ts
 export const getSheetData = async (
   sheetName: string,
 ): Promise<{ headers: string[]; rows: string[][] }> => {
@@ -159,17 +241,16 @@ export const getSheetData = async (
 Call them from any dialog with full type inference — no manual type declarations needed:
 
 ```typescript
-// apps/my-sheets-addon/dialogs/sidebar/src/App.tsx
-import { serverFunctions } from "@my-sheets-addon/shared/utils/server";
+import { serverFunctions } from "@my-gas-app/shared/utils/server";
 
 // TypeScript knows the return type: { headers: string[], rows: string[][] }
 const { headers, rows } = await serverFunctions.getSheetData("Responses");
 
-// Type error caught at compile time — no silent runtime surprises
+// Type error caught at compile time
 console.log(rows.typo); // ✗ Property 'typo' does not exist
 ```
 
-The `serverFunctions` proxy in `packages/shared/src/utils/server.ts` imports the server's TypeScript types directly via the `@my-sheets-addon/server` workspace alias. GAS globals (`SpreadsheetApp`, `HtmlService`, etc.) are scoped to `packages/server` only and won't leak into your client dialogs.
+GAS globals (`SpreadsheetApp`, `HtmlService`, etc.) are scoped to `packages/server` only and won't leak into your client dialogs.
 
 ---
 
@@ -213,32 +294,21 @@ Now `serverFunctions.openSettingsDialog()` is available — typed — from any d
 
 ### Customising the Extensions menu
 
-The generated `onOpen` in `packages/server/src/ui.ts` runs automatically every time the spreadsheet is opened. It builds the add-on menu:
+> Standalone scripts do not have an Extensions menu — skip this section if you chose Standalone.
 
-```typescript
-export const onOpen = () => {
-  SpreadsheetApp.getUi()
-    .createAddonMenu()
-    .addItem("Open", "openSidebar")
-    .addToUi();
-};
-```
+The generated `onOpen` in `packages/server/src/ui.ts` runs every time the file is opened and builds the add-on menu. The UI service differs per project type:
 
-`addItem(label, functionName)` adds a clickable item. The second argument must be the **string name** of a top-level exported function — GAS calls it by name when the user clicks.
+| Project type | UI service |
+| ------------ | ---------- |
+| Sheets | `SpreadsheetApp.getUi()` |
+| Docs | `DocumentApp.getUi()` |
+| Forms | `FormApp.getUi()` |
 
 **Add an item that opens a dialog:**
 
 ```typescript
-// packages/server/src/ui.ts
-export const openSettingsDialog = () => {
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutputFromFile("settings").setWidth(800).setHeight(600),
-    "Settings",
-  );
-};
-
 export const onOpen = () => {
-  SpreadsheetApp.getUi()
+  SpreadsheetApp.getUi() // swap for DocumentApp / FormApp as needed
     .createAddonMenu()
     .addItem("Open", "openSidebar")
     .addItem("Settings", "openSettingsDialog") // ← add
@@ -249,16 +319,6 @@ export const onOpen = () => {
 **Add an item that runs a server function directly:**
 
 ```typescript
-// packages/server/src/index.ts
-export const importDataFromSheet = (): void => {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  // ... your logic
-  SpreadsheetApp.getUi().alert("Import complete!");
-};
-```
-
-```typescript
-// packages/server/src/ui.ts
 export const onOpen = () => {
   SpreadsheetApp.getUi()
     .createAddonMenu()
@@ -292,35 +352,30 @@ Everything added to the menu must be exported from `packages/server/src/index.ts
 export { onOpen, onInstall, openSidebar, openSettingsDialog, importDataFromSheet } from "./ui";
 ```
 
-> **Tip:** Menu items run as server-side functions — they can read/write sheet data directly without going through `serverFunctions`. Use them for one-shot operations that don't need a UI. Use `serverFunctions` when you need to trigger an action from a dialog.
+> **Tip:** Menu items run as server-side functions — they can read/write data directly without going through `serverFunctions`. Use them for one-shot operations. Use `serverFunctions` when you need to trigger an action from within a dialog.
 
 ---
 
 ### Adding fonts
 
-The easiest way is Google Fonts. Each dialog's `index.html` already includes preconnect links; add your font there:
+Each dialog's `index.html` already includes Google Fonts preconnect links. Add your font:
 
 ```html
-<!-- apps/my-sheets-addon/dialogs/sidebar/index.html -->
-<head>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
-  />
-</head>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+/>
 ```
 
 Then use it in `packages/shared/src/styles/global.css`:
 
 ```css
-body {
-  font-family: 'Inter', sans-serif;
-}
+body { font-family: 'Inter', sans-serif; }
 ```
 
-If you're using **Tailwind**, set it as the default sans font in your CSS:
+If you're using **Tailwind**:
 
 ```css
 @theme inline {
@@ -328,27 +383,26 @@ If you're using **Tailwind**, set it as the default sans font in your CSS:
 }
 ```
 
-For **self-hosted fonts** (no external requests at runtime), drop the font files in `packages/shared/src/styles/fonts/` and use `@font-face` in `global.css`. Vite will inline them into the final HTML at build time since dialogs build with `vite-plugin-singlefile`.
+For **self-hosted fonts**, drop the files in `packages/shared/src/styles/fonts/` and use `@font-face` in `global.css`. Vite inlines them into the final HTML at build time via `vite-plugin-singlefile`.
 
 ---
 
 ### Keeping bundles small
 
-Each dialog builds as a **single inlined HTML file**. GAS has no hard file size limit for HTML output, but large bundles slow down dialog load time. The scaffolded project already externalizes your framework (React, Vue, etc.) and `gas-client` via an `importmap` — they load from esm.sh at runtime and are never bundled.
+Each dialog builds as a **single inlined HTML file**. The scaffolded project already externalizes your framework and `gas-client` via an `importmap` — they load from esm.sh at runtime and are never bundled.
 
 If you add a heavy library, externalize it the same way.
 
 **Step 1 — Add to the importmap in `index.html`:**
 
 ```html
-<!-- apps/my-sheets-addon/dialogs/sidebar/index.html -->
 <script type="importmap">
   {
     "imports": {
-      "react":          "https://esm.sh/react@19.2.4",
-      "react-dom/":     "https://esm.sh/react-dom@19.2.4/",
-      "gas-client":     "https://esm.sh/gas-client@1.2.1",
-      "recharts":       "https://esm.sh/recharts@2.15.3"
+      "react":      "https://esm.sh/react@19.2.4",
+      "react-dom/": "https://esm.sh/react-dom@19.2.4/",
+      "gas-client": "https://esm.sh/gas-client@1.2.1",
+      "recharts":   "https://esm.sh/recharts@2.15.3"
     }
   }
 </script>
@@ -357,34 +411,13 @@ If you add a heavy library, externalize it the same way.
 **Step 2 — Mark it as external in `vite.config.ts`:**
 
 ```typescript
-// vite.config.ts
 rollupOptions: {
   external: ["react", "react-dom", "react-dom/client", "gas-client", "recharts"],
   output: { format: "es" },
 }
 ```
 
-Now `recharts` is fetched from esm.sh by the browser — it's never inlined into your HTML. The importmap entry pins the exact version, so you get reproducible loads.
-
 > **Tip:** Check if the library is available on esm.sh before externalizing. Most npm packages work; native addons or Node-specific packages won't.
-
----
-
-## Docs Add-on
-
-*Coming soon.*
-
----
-
-## Forms Add-on
-
-*Coming soon.*
-
----
-
-## Standalone Script
-
-*Coming soon.*
 
 ---
 
@@ -450,6 +483,8 @@ For `tailwind`, the command also prints the exact lines to add to `vite.config.t
 
 ## Scripts reference
 
+> These scripts are available in every **generated project**. They are not part of the `create-gas-app` CLI repo itself.
+
 | Script                 | What it does                                                |
 | ---------------------- | ----------------------------------------------------------- |
 | `dev`                  | `deploy:dev` + Vite dev server at `https://localhost:$PORT` |
@@ -458,6 +493,7 @@ For `tailwind`, the command also prints the exact lines to add to `vite.config.t
 | `deploy`               | `build` + `clasp:push`                                      |
 | `deploy:dev`           | `build:dev` + `clasp:push`                                  |
 | `setup:certs`          | Generate local HTTPS certs with mkcert                      |
+| `clasp:login`          | Authenticate with Google                                    |
 | `clasp:create`         | Create a new GAS project and write `.clasp.json`            |
 | `clasp:push`           | Push `dist/` to GAS                                         |
 | `clasp:open:script`    | Open the Apps Script editor in your browser                 |
