@@ -124,9 +124,10 @@ async function addDialog(name: string): Promise<void> {
   const dialogName = name.trim();
   validateName(dialogName, "dialog name");
 
-  // Detect project name and framework from root package.json
+  // Detect project name, framework, and addon type from root package.json
   let projectName = "my-gas-app";
   let framework: Framework = "react";
+  let addonType: GasAddonType = "sheets";
   try {
     const pkg = JSON.parse(
       fs.readFileSync(path.join(root, "package.json"), "utf-8"),
@@ -135,9 +136,18 @@ async function addDialog(name: string): Promise<void> {
     if (pkg.dependencies?.vue) framework = "vue";
     else if (pkg.dependencies?.svelte) framework = "svelte";
     else if (pkg.dependencies?.["solid-js"]) framework = "solid";
+    const claspCreate: string = pkg.scripts?.["clasp:create"] ?? "";
+    if (claspCreate.includes("--type docs")) addonType = "docs";
+    else if (claspCreate.includes("--type forms")) addonType = "forms";
+    else if (claspCreate.includes("--type standalone")) addonType = "standalone";
   } catch {
     // defaults
   }
+
+  const appService =
+    addonType === "docs" ? "DocumentApp" :
+    addonType === "forms" ? "FormApp" :
+    "SpreadsheetApp";
 
   const appRoot = path.resolve(root, "apps", projectName);
   if (!isInside(root, appRoot)) {
@@ -260,7 +270,7 @@ ${importMap}
       `    const html = HtmlService.createHtmlOutputFromFile("${dialogName}")`,
       `      .setWidth(800)`,
       `      .setHeight(500);`,
-      `    SpreadsheetApp.getUi().showModalDialog(`,
+      `    ${appService}.getUi().showModalDialog(`,
       `      html, "${pascal}",`,
       `    );`,
       `  };`,

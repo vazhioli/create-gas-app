@@ -21,7 +21,7 @@ const CONTAINER: Partial<Record<GasAddonType, ContainerSpec>> = {
   },
   docs: {
     fn: "getDocumentInfo",
-    stateVar: "document",
+    stateVar: "docInfo",
     type: "{ id: string; name: string }",
     fields: [["Document", "name"]],
   },
