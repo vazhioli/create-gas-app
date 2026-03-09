@@ -211,6 +211,91 @@ Now `serverFunctions.openSettingsDialog()` is available — typed — from any d
 
 ---
 
+### Customising the Extensions menu
+
+The generated `onOpen` in `packages/server/src/ui.ts` runs automatically every time the spreadsheet is opened. It builds the add-on menu:
+
+```typescript
+export const onOpen = () => {
+  SpreadsheetApp.getUi()
+    .createAddonMenu()
+    .addItem("Open", "openSidebar")
+    .addToUi();
+};
+```
+
+`addItem(label, functionName)` adds a clickable item. The second argument must be the **string name** of a top-level exported function — GAS calls it by name when the user clicks.
+
+**Add an item that opens a dialog:**
+
+```typescript
+// packages/server/src/ui.ts
+export const openSettingsDialog = () => {
+  SpreadsheetApp.getUi().showModalDialog(
+    HtmlService.createHtmlOutputFromFile("settings").setWidth(800).setHeight(600),
+    "Settings",
+  );
+};
+
+export const onOpen = () => {
+  SpreadsheetApp.getUi()
+    .createAddonMenu()
+    .addItem("Open", "openSidebar")
+    .addItem("Settings", "openSettingsDialog") // ← add
+    .addToUi();
+};
+```
+
+**Add an item that runs a server function directly:**
+
+```typescript
+// packages/server/src/index.ts
+export const importDataFromSheet = (): void => {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  // ... your logic
+  SpreadsheetApp.getUi().alert("Import complete!");
+};
+```
+
+```typescript
+// packages/server/src/ui.ts
+export const onOpen = () => {
+  SpreadsheetApp.getUi()
+    .createAddonMenu()
+    .addItem("Open", "openSidebar")
+    .addSeparator()
+    .addItem("Import data", "importDataFromSheet") // ← runs directly, no dialog
+    .addToUi();
+};
+```
+
+**Add a submenu:**
+
+```typescript
+export const onOpen = () => {
+  const ui = SpreadsheetApp.getUi();
+  ui.createAddonMenu()
+    .addItem("Open", "openSidebar")
+    .addSeparator()
+    .addSubMenu(
+      ui.createMenu("Tools")
+        .addItem("Import data", "importDataFromSheet")
+        .addItem("Export to CSV", "exportToCsv"),
+    )
+    .addToUi();
+};
+```
+
+Everything added to the menu must be exported from `packages/server/src/index.ts` so GAS can find it at the top level:
+
+```typescript
+export { onOpen, onInstall, openSidebar, openSettingsDialog, importDataFromSheet } from "./ui";
+```
+
+> **Tip:** Menu items run as server-side functions — they can read/write sheet data directly without going through `serverFunctions`. Use them for one-shot operations that don't need a UI. Use `serverFunctions` when you need to trigger an action from a dialog.
+
+---
+
 ### Adding fonts
 
 The easiest way is Google Fonts. Each dialog's `index.html` already includes preconnect links; add your font there:
