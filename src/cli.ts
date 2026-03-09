@@ -144,6 +144,11 @@ async function addDialog(name: string): Promise<void> {
     // defaults
   }
 
+  if (addonType === "standalone") {
+    console.error(pc.red("Standalone scripts have no getUi() — dialogs only apply to add-on project types (sheets, docs, forms)."));
+    process.exit(1);
+  }
+
   const appService =
     addonType === "docs" ? "DocumentApp" :
     addonType === "forms" ? "FormApp" :
@@ -481,6 +486,6 @@ ${pc.bold("Frameworks:")}
   React (TypeScript + SWC) · Vue 3 · Svelte 5 · SolidJS
 
 ${pc.bold("Addons:")}
-  Tailwind CSS v4 · shadcn/ui · Commitlint + Lefthook
+  Tailwind CSS v4 · shadcn/ui · Commitlint + Lefthook · ESLint
 `);
 }
