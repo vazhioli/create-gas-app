@@ -573,6 +573,13 @@ PORT=5173 npm run dev
 
 ---
 
+## Resources
+
+- [Google Apps Script — Guides](https://developers.google.com/apps-script/overview) — Concepts, tutorials, and how-to guides
+- [Google Apps Script — Reference](https://developers.google.com/apps-script/reference) — Full API reference for all GAS services
+
+---
+
 ## Acknowledgements
 
 The Sheets add-on architecture is heavily inspired by [enuchi/React-Google-Apps-Script](https://github.com/enuchi/React-Google-Apps-Script) — the original template that pioneered bundling React apps into GAS dialogs with a Webpack + Babel setup. Two of his packages are core dependencies of every generated project:
