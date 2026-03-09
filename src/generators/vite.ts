@@ -189,7 +189,7 @@ export default async ({
     });
   }
 
-  // Build: server IIFE + static file copies + client HTML bundles
+  // Build: server ES bundle + static file copies + client HTML bundles
   const copyTargets = [{ src: APPSSCRIPT_ENTRY, dest: "./" }];
 
   if (mode === "development") {

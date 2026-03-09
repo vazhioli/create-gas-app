@@ -145,7 +145,7 @@ This pushes lightweight iframe wrappers to GAS, then starts Vite at `https://loc
 npm run deploy
 ```
 
-Builds all dialogs to single inlined HTML files, builds the server to a single IIFE, and pushes to GAS.
+Builds all dialogs to single inlined HTML files, builds the server to a single ES bundle (exports stripped for GAS compatibility), and pushes to GAS.
 
 ---
 
