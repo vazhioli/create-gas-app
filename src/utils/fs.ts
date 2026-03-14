@@ -1,4 +1,5 @@
-import { outputFile, outputJson } from "fs-extra/esm";
+import { mkdir, writeFile as fsWriteFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import path from "path";
 
 /**
@@ -8,7 +9,8 @@ export async function writeFile(
   filePath: string,
   content: string,
 ): Promise<void> {
-  await outputFile(filePath, content, "utf-8");
+  await mkdir(dirname(filePath), { recursive: true });
+  await fsWriteFile(filePath, content, "utf-8");
 }
 
 /**
@@ -18,7 +20,8 @@ export async function writeJsonFile(
   filePath: string,
   content: unknown,
 ): Promise<void> {
-  await outputJson(filePath, content, { spaces: 2 });
+  await mkdir(dirname(filePath), { recursive: true });
+  await fsWriteFile(filePath, JSON.stringify(content, null, 2) + "\n", "utf-8");
 }
 
 /**
