@@ -210,8 +210,26 @@ const uiIndexTs = () => `// Re-export all shared UI components
 const serverEnvTs = () => `/**
  * Server-only environment values.
  * Do not expose these values to client bundles.
+ *
+ * Copy this file from env.example.ts and fill in real values.
+ * This file is gitignored.
  */
 export const env = {
+  SOME_PRIVATE_KEY: "",
+};
+`;
+
+const serverEnvExampleTs = () => `/**
+ * Template for packages/server/src/env.ts (which is gitignored).
+ *
+ * To get started:
+ *   cp packages/server/src/env.example.ts packages/server/src/env.ts
+ *
+ * Then fill in your real values in env.ts. Never commit env.ts.
+ */
+export const env = {
+  // Add your server-side secrets here, for example:
+  // SOME_PRIVATE_KEY: "your-key-here",
   SOME_PRIVATE_KEY: "",
 };
 `;
@@ -235,6 +253,7 @@ export async function generateServer(
     serverUiTs(config.addonType),
   );
   await writeFile(pp("packages", "server", "src", "env.ts"), serverEnvTs());
+  await writeFile(pp("packages", "server", "src", "env.example.ts"), serverEnvExampleTs());
 
   // packages/shared
   await writeFile(
