@@ -279,6 +279,13 @@ export async function generateBase(
   await writeJsonFile(pp("tsconfig.json"), tsconfigJson(config));
   await writeJsonFile(pp(".vscode", "settings.json"), vscodeSettings(config));
   await writeJsonFile(pp(".vscode", "extensions.json"), vscodeExtensions(config));
+
+  if (config.packageManager === "pnpm") {
+    await writeFile(
+      pp("pnpm-workspace.yaml"),
+      `packages:\n  - "apps/*"\n  - "packages/*"\n`,
+    );
+  }
   await writeFile(
     pp("packages", "server", "templates", "dev-dialog-bridge.html"),
     devServerWrapperHtml(),
