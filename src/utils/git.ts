@@ -1,20 +1,16 @@
-import { execa } from "execa";
+import { x } from "tinyexec";
 
 export async function isGitInstalled(): Promise<boolean> {
-  try {
-    await execa("git", ["--version"]);
-    return true;
-  } catch {
-    return false;
-  }
+  const result = await x("git", ["--version"]);
+  return result.exitCode === 0;
 }
 
 export async function initGitRepo(cwd: string): Promise<void> {
-  await execa("git", ["init"], { cwd });
-  await execa("git", ["add", "-A"], { cwd });
-  await execa(
+  await x("git", ["init"], { nodeOptions: { cwd }, throwOnError: true });
+  await x("git", ["add", "-A"], { nodeOptions: { cwd }, throwOnError: true });
+  await x(
     "git",
     ["commit", "-m", "chore: initial commit from create-gas-app"],
-    { cwd },
+    { nodeOptions: { cwd }, throwOnError: true },
   );
 }

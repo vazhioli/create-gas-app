@@ -1,4 +1,4 @@
-import { execa } from "execa";
+import { x } from "tinyexec";
 import fs from "fs";
 import path from "path";
 import type { PackageManager } from "../types.js";
@@ -60,5 +60,5 @@ export async function installDependencies(
   pm: PackageManager,
 ): Promise<void> {
   const [cmd, ...args] = getInstallCommand(pm);
-  await execa(cmd, args, { cwd, stdio: "pipe" });
+  await x(cmd, args, { nodeOptions: { cwd }, throwOnError: true });
 }

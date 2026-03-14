@@ -1,5 +1,5 @@
 import * as p from "@clack/prompts";
-import { execa } from "execa";
+import { x } from "tinyexec";
 import pc from "picocolors";
 import path from "path";
 import type { ProjectConfig } from "../types.js";
@@ -71,7 +71,7 @@ export async function scaffoldProject(
     try {
       const formatArgs =
         config.packageManager === "yarn" ? ["format"] : ["run", "format"];
-      await execa(config.packageManager, formatArgs, { cwd: root });
+      await x(config.packageManager, formatArgs, { nodeOptions: { cwd: root }, throwOnError: true });
       spinner.stop("Formatting complete.");
     } catch {
       spinner.stop(pc.yellow("Formatting failed — run it manually."));
@@ -82,7 +82,7 @@ export async function scaffoldProject(
 
   if (config.addons.includes("commitlint") && depsInstalled) {
     try {
-      await execa("npx", ["lefthook", "install"], { cwd: root });
+      await x("npx", ["lefthook", "install"], { nodeOptions: { cwd: root }, throwOnError: true });
     } catch {
       // non-fatal
     }
