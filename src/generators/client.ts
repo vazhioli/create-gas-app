@@ -47,6 +47,7 @@ body, html {
   overflow: hidden auto;
   font-family: ${FONT_STACK};
   -webkit-font-smoothing: antialiased;
+  background-color: #ffffff;
 }
 #root { width: 100%; min-height: 100%; }
 `;
@@ -60,6 +61,7 @@ body, html {
   height: 100%;
   overflow: hidden auto;
   font-family: ${FONT_STACK};
+  background-color: #ffffff;
 }
 #root { @apply w-full min-h-screen; }
 `;
