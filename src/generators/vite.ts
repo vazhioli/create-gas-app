@@ -23,6 +23,10 @@ const FRAMEWORK_PLUGIN: Record<
     importLine: `import solid from "vite-plugin-solid";`,
     pluginCall: "solid()",
   },
+  vanilla: {
+    importLine: "",
+    pluginCall: "",
+  },
 };
 
 const viteConfigTs = (config: ProjectConfig) => {
@@ -31,14 +35,15 @@ const viteConfigTs = (config: ProjectConfig) => {
   const scope = `@${config.projectName}`;
   const clientExternals = JSON.stringify(CLIENT_EXTERNALS[config.framework]);
 
+  const fwImport = fw.importLine ? `${fw.importLine}\n` : "";
+  const fwPlugin = fw.pluginCall ? `\n      ${fw.pluginCall},` : "";
   const tailwindImport = tw ? `import tailwindcss from "@tailwindcss/vite";\n` : "";
   const tailwindPlugin = tw ? "\n    tailwindcss()," : "";
 
   return `import { existsSync, readFileSync } from "fs";
 import { writeFile } from "fs/promises";
 import { resolve } from "path";
-${fw.importLine}
-${tailwindImport}import { build, type BuildOptions, defineConfig, type ServerOptions } from "vite";
+${fwImport}${tailwindImport}import { build, type BuildOptions, defineConfig, type ServerOptions } from "vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
@@ -104,8 +109,7 @@ if (existsSync(keyPath) && existsSync(certPath)) {
 
 const clientBuildConfig = (appDir: string, template: string) =>
   defineConfig({
-    plugins: [
-      ${fw.pluginCall},${tailwindPlugin}
+    plugins: [${fwPlugin}${tailwindPlugin}
       viteSingleFile({ useRecommendedBuildConfig: true }),
     ],
     resolve: {
@@ -183,7 +187,7 @@ export default async ({
   if (command === "serve") {
     // Dev: serve apps/ locally — each app at /<appDir>/index.html
     return defineConfig({
-      plugins: [${fw.pluginCall},${tailwindPlugin}],
+      plugins: [${fwPlugin}${tailwindPlugin}].filter(Boolean),
       resolve: { ...sharedResolve, dedupe: [] },
       server: devServerOptions,
       root: APPS_ROOT,

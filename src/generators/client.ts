@@ -690,6 +690,267 @@ export function App() {
 `;
 };
 
+// ─── VANILLA ──────────────────────────────────────────────────────────────────
+
+const vanillaMainTs = (projectName: string) =>
+  `import "@${projectName}/shared/styles/global.css";
+import { App } from "./App";
+
+new App(document.getElementById("root")!);
+`;
+
+const vanillaAppTs = (
+  projectName: string,
+  hasTailwind: boolean,
+  addonType: GasAddonType,
+) => {
+  const cs = CONTAINER[addonType] ?? null;
+  const isAddon = addonType !== "standalone";
+
+  const containerDecl = cs ? `\n  private ${cs.stateVar}: ${cs.type} | null = null;` : "";
+
+  const fetchBody = cs
+    ? `const [user, info] = await Promise.all([
+        serverFunctions.getCurrentUser(),
+        serverFunctions.${cs.fn}(),
+      ]);
+      this.user = user;
+      this.${cs.stateVar} = info;`
+    : `this.user = await serverFunctions.getCurrentUser();`;
+
+  const allRows: [string, string][] = [
+    ["User", `this.user?.email`],
+    ...(cs ? cs.fields.map(([label, field]): [string, string] => [label, `this.${cs.stateVar}?.${field}`]) : []),
+  ];
+
+  const rowsHtml = allRows
+    .map(([label, expr], i) => {
+      const sep = i < allRows.length - 1 ? " border-bottom: 1px solid #f1f5f9;" : "";
+      return `    row("${label}", String(${expr} ?? ""))`;
+    })
+    .join(",\n");
+
+  const aboutBtn = isAddon
+    ? hasTailwind
+      ? `
+    const btn = el("button", "rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted");
+    btn.textContent = "About";
+    btn.onclick = () => serverFunctions.openAboutDialog();
+    const footer = el("div", "mt-auto flex justify-end");
+    footer.appendChild(btn);
+    container.appendChild(footer);`
+      : `
+    const btn = document.createElement("button");
+    btn.textContent = "About";
+    btn.style.cssText = "border: 1px solid #e2e8f0; background: #fff; color: #334155; padding: 8px 16px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600";
+    btn.onclick = () => serverFunctions.openAboutDialog();
+    const footer = document.createElement("div");
+    footer.style.cssText = "margin-top: auto; display: flex; justify-content: flex-end";
+    footer.appendChild(btn);
+    container.appendChild(footer);`
+    : "";
+
+  if (hasTailwind) {
+    return `import { serverFunctions } from "@${projectName}/shared/utils/server";
+
+const el = (tag: string, cls = "") => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+};
+
+const row = (label: string, value: string) => {
+  const r = el("div", "flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 last:border-b-0");
+  const l = el("span", "shrink-0 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground");
+  const v = el("span", "truncate text-[13px] font-medium text-foreground");
+  l.textContent = label;
+  v.textContent = value;
+  r.append(l, v);
+  return r;
+};
+
+export class App {
+  private user: { email: string } | null = null;${containerDecl}
+
+  constructor(private root: HTMLElement) {
+    this.init();
+  }
+
+  private async init() {
+    this.root.innerHTML = \`<div class="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading workspace…</div>\`;
+    try {
+      ${fetchBody}
+      this.render();
+    } catch (err) {
+      this.root.innerHTML = \`<div class="flex min-h-screen items-center justify-center p-4 text-center text-sm text-destructive">\${err instanceof Error ? err.message : "Something went wrong."}</div>\`;
+    }
+  }
+
+  private render() {
+    this.root.innerHTML = "";
+    const container = el("div", "flex min-h-screen flex-col gap-4 p-5");
+
+    const header = el("div");
+    const tag = el("p", "mb-2 text-[10px] font-bold uppercase tracking-widest text-indigo-500");
+    tag.textContent = "● Google Apps Script";
+    const title = el("h1", "text-[21px] font-extrabold tracking-tight text-foreground");
+    title.textContent = "My GAS App";
+    const sub = el("p", "mt-1.5 text-xs text-muted-foreground");
+    sub.textContent = "Type-safe server calls · Live reload · Zero lock-in";
+    header.append(tag, title, sub);
+
+    const card = el("div", "overflow-hidden rounded-2xl border border-border/60 bg-background");
+    card.append(
+${rowsHtml},
+    );
+
+    container.append(header, card);${aboutBtn}
+    this.root.appendChild(container);
+  }
+}
+`;
+  }
+
+  return `import { serverFunctions } from "@${projectName}/shared/utils/server";
+
+const row = (label: string, value: string, last = false): HTMLElement => {
+  const r = document.createElement("div");
+  r.style.cssText = \`display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; gap: 12px;\${last ? "" : " border-bottom: 1px solid #f1f5f9;"}\`;
+  const l = document.createElement("span");
+  l.style.cssText = "font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: #94a3b8; flex-shrink: 0";
+  const v = document.createElement("span");
+  v.style.cssText = "font-size: 13px; font-weight: 500; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 58%";
+  l.textContent = label;
+  v.textContent = value;
+  r.append(l, v);
+  return r;
+};
+
+export class App {
+  private user: { email: string } | null = null;${containerDecl}
+
+  constructor(private root: HTMLElement) {
+    this.init();
+  }
+
+  private async init() {
+    this.root.innerHTML = \`<div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; color: #94a3b8; font-size: 13px">Loading workspace…</div>\`;
+    try {
+      ${fetchBody}
+      this.render();
+    } catch (err) {
+      this.root.innerHTML = \`<div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; color: #ef4444; font-size: 13px; padding: 16px; text-align: center">\${err instanceof Error ? err.message : "Something went wrong."}</div>\`;
+    }
+  }
+
+  private render() {
+    this.root.innerHTML = "";
+    const container = document.createElement("div");
+    container.style.cssText = "min-height: 100vh; background: #f8fafc; padding: 20px 16px; display: flex; flex-direction: column; gap: 14px";
+
+    const header = document.createElement("div");
+    const tag = document.createElement("p");
+    tag.style.cssText = "margin: 0 0 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #6366f1";
+    tag.textContent = "● Google Apps Script";
+    const title = document.createElement("h1");
+    title.style.cssText = "margin: 0; font-size: 21px; font-weight: 800; color: #0f172a; letter-spacing: -0.025em; line-height: 1.2";
+    title.textContent = "My GAS App";
+    const sub = document.createElement("p");
+    sub.style.cssText = "margin: 5px 0 0; font-size: 12px; color: #64748b; line-height: 1.5";
+    sub.textContent = "Type-safe server calls · Live reload · Zero lock-in";
+    header.append(tag, title, sub);
+
+    const card = document.createElement("div");
+    card.style.cssText = "background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04); overflow: hidden";
+    const allRows = [${allRows.map(([l, e]) => `["${l}", String(${e} ?? "")]`).join(", ")}];
+    allRows.forEach(([l, v], i) => card.appendChild(row(l, v, i === allRows.length - 1)));
+
+    container.append(header, card);${aboutBtn}
+    this.root.appendChild(container);
+  }
+}
+`;
+};
+
+const vanillaAboutAppTs = (projectName: string, hasTailwind: boolean) => {
+  if (hasTailwind) {
+    return `import { scriptHostFunctions } from "@${projectName}/shared/utils/server";
+
+const el = (tag: string, cls = "") => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+};
+
+const root = document.getElementById("root")!;
+const container = el("div", "flex min-h-screen flex-col gap-5 p-6");
+
+const icon = el("div", "mb-4 size-11 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500");
+const title = el("h1", "text-xl font-extrabold tracking-tight text-foreground");
+title.textContent = "My GAS App";
+const desc = el("p", "mt-2 text-sm leading-relaxed text-muted-foreground");
+desc.textContent = "A modern scaffold for Google Apps Script add-ons — type-safe, live reload, zero lock-in.";
+const header = el("div");
+header.append(icon, title, desc);
+
+const card = el("div", "rounded-xl border border-border/70 bg-background px-4 py-3");
+const stackLabel = el("p", "text-[10px] font-semibold uppercase tracking-widest text-muted-foreground");
+stackLabel.textContent = "Stack";
+const stackVal = el("p", "mt-1 text-sm text-foreground");
+stackVal.textContent = "Vite · TypeScript · gas-client · Monorepo";
+card.append(stackLabel, stackVal);
+
+const closeBtn = el("button", "rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted");
+closeBtn.textContent = "Close";
+closeBtn.onclick = () => scriptHostFunctions.close();
+const footer = el("div", "mt-auto flex justify-end");
+footer.appendChild(closeBtn);
+
+container.append(header, card, footer);
+root.appendChild(container);
+`;
+  }
+
+  return `import { scriptHostFunctions } from "@${projectName}/shared/utils/server";
+
+const root = document.getElementById("root")!;
+const container = document.createElement("div");
+container.style.cssText = "min-height: 100vh; background: #f8fafc; padding: 24px 20px; display: flex; flex-direction: column; gap: 16px";
+
+const icon = document.createElement("div");
+icon.style.cssText = "width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #8b5cf6); margin-bottom: 16px";
+const title = document.createElement("h1");
+title.style.cssText = "margin: 0; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.025em";
+title.textContent = "My GAS App";
+const desc = document.createElement("p");
+desc.style.cssText = "margin: 6px 0 0; font-size: 13px; color: #64748b; line-height: 1.5";
+desc.textContent = "A modern scaffold for Google Apps Script add-ons — type-safe, live reload, zero lock-in.";
+const header = document.createElement("div");
+header.append(icon, title, desc);
+
+const card = document.createElement("div");
+card.style.cssText = "background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 12px 16px";
+const stackLabel = document.createElement("p");
+stackLabel.style.cssText = "margin: 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8";
+stackLabel.textContent = "Stack";
+const stackVal = document.createElement("p");
+stackVal.style.cssText = "margin: 4px 0 0; font-size: 13px; color: #334155";
+stackVal.textContent = "Vite · TypeScript · gas-client · Monorepo";
+card.append(stackLabel, stackVal);
+
+const closeBtn = document.createElement("button");
+closeBtn.textContent = "Close";
+closeBtn.style.cssText = "border: 1px solid #e2e8f0; background: #fff; color: #334155; padding: 8px 16px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600";
+closeBtn.onclick = () => scriptHostFunctions.close();
+const footer = document.createElement("div");
+footer.style.cssText = "margin-top: auto; display: flex; justify-content: flex-end";
+footer.appendChild(closeBtn);
+
+container.append(header, card, footer);
+root.appendChild(container);
+`;
+};
+
 // ─── Framework dispatch ───────────────────────────────────────────────────────
 
 function getEntryExt(fw: Framework): { mainExt: string; appExt: string } {
@@ -698,6 +959,7 @@ function getEntryExt(fw: Framework): { mainExt: string; appExt: string } {
     vue: { mainExt: "ts", appExt: "vue" },
     svelte: { mainExt: "ts", appExt: "svelte" },
     solid: { mainExt: "tsx", appExt: "tsx" },
+    vanilla: { mainExt: "ts", appExt: "ts" },
   }[fw];
 }
 
@@ -731,6 +993,12 @@ function getFrameworkFiles(
         mainContent: solidMainTsx(projectName),
         appContent: solidAppTsx(projectName, tw, config.addonType),
         aboutAppContent: solidAboutAppTsx(projectName, tw),
+      };
+    case "vanilla":
+      return {
+        mainContent: vanillaMainTs(projectName),
+        appContent: vanillaAppTs(projectName, tw, config.addonType),
+        aboutAppContent: vanillaAboutAppTs(projectName, tw),
       };
   }
 }

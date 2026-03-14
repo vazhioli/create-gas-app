@@ -1,4 +1,4 @@
-export type Framework = "react" | "vue" | "svelte" | "solid";
+export type Framework = "react" | "vue" | "svelte" | "solid" | "vanilla";
 export type GasAddonType = "sheets" | "docs" | "forms" | "standalone";
 export type PackageManager = "npm" | "pnpm" | "yarn" | "bun";
 export type Addon = "tailwind" | "shadcn" | "commitlint" | "eslint";

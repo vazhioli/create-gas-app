@@ -84,6 +84,7 @@ export async function gatherProjectConfig(
       { value: "vue", label: "Vue", hint: "Vue 3 + TypeScript" },
       { value: "svelte", label: "Svelte", hint: "Svelte 5 + TypeScript" },
       { value: "solid", label: "SolidJS", hint: "SolidJS + TypeScript" },
+      { value: "vanilla", label: "Vanilla", hint: "Plain HTML + CSS + TypeScript, no framework" },
     ],
     initialValue: "react",
   })) as Framework;

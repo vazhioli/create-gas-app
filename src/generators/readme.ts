@@ -14,6 +14,7 @@ const FRAMEWORK_LABEL: Record<string, string> = {
   vue: "Vue 3 (TypeScript)",
   svelte: "Svelte 5 (TypeScript)",
   solid: "SolidJS (TypeScript)",
+  vanilla: "Vanilla (HTML + CSS + TypeScript)",
 };
 
 export async function generateReadme(

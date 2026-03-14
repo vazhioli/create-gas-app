@@ -96,6 +96,7 @@ function detectProjectConfig(root: string): DetectedProjectConfig {
     if (pkg.dependencies?.vue) framework = "vue";
     else if (pkg.dependencies?.svelte) framework = "svelte";
     else if (pkg.dependencies?.["solid-js"]) framework = "solid";
+    else if (!pkg.dependencies?.react) framework = "vanilla";
     const claspCreate: string = pkg.scripts?.["clasp:create"] ?? "";
     if (claspCreate.includes("--type docs")) addonType = "docs";
     else if (claspCreate.includes("--type forms")) addonType = "forms";
@@ -221,9 +222,9 @@ async function addDialog(name: string): Promise<void> {
     process.exit(1);
   }
 
-  const mainExt = framework === "vue" || framework === "svelte" ? "ts" : "tsx";
+  const mainExt = framework === "vue" || framework === "svelte" || framework === "vanilla" ? "ts" : "tsx";
   const appExt =
-    framework === "vue" ? "vue" : framework === "svelte" ? "svelte" : mainExt;
+    framework === "vue" ? "vue" : framework === "svelte" ? "svelte" : framework === "vanilla" ? "ts" : mainExt;
   const pascal = dialogName.charAt(0).toUpperCase() + dialogName.slice(1);
   const importMap = JSON.stringify(
     { imports: IMPORT_MAPS[framework] },
@@ -280,7 +281,7 @@ ${importMap}
       path.join(appDir, "src", `App.${appExt}`),
       `<div style="padding: 24px"><h1>${pascal}</h1></div>\n`,
     );
-  } else {
+  } else if (framework === "solid") {
     await writeFile(
       path.join(appDir, "src", `main.${mainExt}`),
       `import { render } from "solid-js/web";\nimport { App } from "./App";\nimport "@${projectName}/shared/styles/global.css";\nrender(() => <App />, document.getElementById("root")!);\n`,
@@ -288,6 +289,12 @@ ${importMap}
     await writeFile(
       path.join(appDir, "src", `App.${appExt}`),
       `export function App() {\n  return <div style={{ padding: "24px" }}><h1>${pascal}</h1></div>;\n}\n`,
+    );
+  } else {
+    // vanilla
+    await writeFile(
+      path.join(appDir, "src", `main.${mainExt}`),
+      `import "@${projectName}/shared/styles/global.css";\n\nconst root = document.getElementById("root")!;\nroot.innerHTML = '<div style="padding: 24px"><h1>${pascal}</h1></div>';\n`,
     );
   }
 
@@ -499,7 +506,7 @@ ${pc.bold("Examples:")}
   npx create-gas-app add dialog settings
 
 ${pc.bold("Frameworks:")}
-  React (TypeScript + SWC) · Vue 3 · Svelte 5 · SolidJS
+  React (TypeScript + SWC) · Vue 3 · Svelte 5 · SolidJS · Vanilla (HTML + CSS + TS)
 
 ${pc.bold("Addons:")}
   Tailwind CSS v4 · shadcn/ui · Commitlint + Lefthook · ESLint

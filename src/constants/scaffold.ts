@@ -121,6 +121,10 @@ export const FRAMEWORK_DEPS: Record<
     dependencies: { "solid-js": v("solid-js") },
     devDependencies: { "vite-plugin-solid": v("vite-plugin-solid") },
   },
+  vanilla: {
+    dependencies: {} as Record<string, string>,
+    devDependencies: {} as Record<string, string>,
+  },
 };
 
 export const ADDON_DEPS = {
@@ -169,6 +173,7 @@ export const ESLINT_FRAMEWORK_DEPS: Record<Framework, Record<string, string>> = 
   vue: { "eslint-plugin-vue": v("eslint-plugin-vue") },
   svelte: { "eslint-plugin-svelte": v("eslint-plugin-svelte") },
   solid: { "eslint-plugin-solid": v("eslint-plugin-solid") },
+  vanilla: {},
 };
 
 export const ROOT_DEV_DEPENDENCIES: Record<string, string> = {
@@ -203,6 +208,9 @@ export const IMPORT_MAPS: Record<Framework, Record<string, string>> = {
     "solid-js/": esmUrl("solid-js", "/"),
     "gas-client": GAS_CLIENT_ESM_URL,
   },
+  vanilla: {
+    "gas-client": GAS_CLIENT_ESM_URL,
+  },
 };
 
 export const CLIENT_EXTERNALS: Record<Framework, string[]> = {
@@ -210,4 +218,5 @@ export const CLIENT_EXTERNALS: Record<Framework, string[]> = {
   vue: ["vue", "gas-client"],
   svelte: ["svelte", "svelte/internal", "gas-client"],
   solid: ["solid-js", "solid-js/web", "gas-client"],
+  vanilla: ["gas-client"],
 };
