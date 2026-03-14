@@ -144,6 +144,31 @@ async function runAddAddon(argv: string[]): Promise<void> {
   await addAddon(name);
 }
 
+function patchViteEntrypoints(viteConfigPath: string, pascal: string, dialogName: string): boolean {
+  try {
+    const src = fs.readFileSync(viteConfigPath, "utf-8");
+    const entry = `  {\n    name: "${pascal}",\n    filename: "${dialogName}",\n    appDir: "${dialogName}",       // apps/<projectName>/dialogs/${dialogName}/\n    template: "index.html",\n  },\n  `;
+    // Insert before the commented-out example block
+    const commentMarker = "// {\n  //   name: \"Settings\"";
+    if (src.includes(commentMarker)) {
+      const patched = src.replace(commentMarker, `${entry}${commentMarker}`);
+      fs.writeFileSync(viteConfigPath, patched, "utf-8");
+      return true;
+    }
+    // Fallback: insert before closing `];` of entrypoints array
+    const closingMarker = "\n];\n";
+    const idx = src.lastIndexOf(closingMarker);
+    if (idx !== -1) {
+      const patched = src.slice(0, idx) + `\n  {\n    name: "${pascal}",\n    filename: "${dialogName}",\n    appDir: "${dialogName}",\n    template: "index.html",\n  },` + src.slice(idx);
+      fs.writeFileSync(viteConfigPath, patched, "utf-8");
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 async function addDialog(name: string): Promise<void> {
   const { writeFile } = await import("./utils/fs.js");
   const root = process.cwd();
@@ -266,15 +291,24 @@ ${importMap}
     );
   }
 
+  // Auto-patch vite.config.ts entrypoints
+  const viteConfigPath = path.resolve(root, "vite.config.ts");
+  const patched = patchViteEntrypoints(viteConfigPath, pascal, dialogName);
+
   p.log.success(
     `Dialog ${pc.cyan(dialogName)} created at ${pc.dim(`apps/${projectName}/dialogs/${dialogName}/`)}`,
   );
+  if (patched) {
+    p.log.success(`Registered in ${pc.cyan("vite.config.ts")} entrypoints.`);
+  }
   p.note(
     [
-      `Register it in ${pc.cyan("vite.config.ts")} entrypoints:`,
-      "",
-      `  { name: "${pascal}", filename: "${dialogName}", appDir: "${dialogName}", template: "index.html" }`,
-      "",
+      ...(patched ? [] : [
+        `Manually register in ${pc.cyan("vite.config.ts")} entrypoints:`,
+        "",
+        `  { name: "${pascal}", filename: "${dialogName}", appDir: "${dialogName}", template: "index.html" }`,
+        "",
+      ]),
       `Add an opener in ${pc.cyan("packages/server/src/ui.ts")}:`,
       "",
       `  export const open${pascal}Dialog = () => {`,
