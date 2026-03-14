@@ -42,6 +42,7 @@ function getScripts(
     "clasp:open:container": openContainerScript,
     "setup:certs":
       "mkdir -p certs && mkcert -key-file ./certs/key.pem -cert-file ./certs/cert.pem localhost 127.0.0.1",
+    "type-check": "tsc --noEmit",
     format: "prettier --write --ignore-unknown .",
     prepare: "lefthook install || true",
     ...(hasEslint ? {
