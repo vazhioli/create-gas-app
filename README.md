@@ -1,6 +1,6 @@
 # create-gas-app
 
-The modern CLI to build Google Apps Script add-ons with React, Vue, Svelte, or SolidJS.
+The modern CLI to build Google Apps Script add-ons with React, Vue, Svelte, SolidJS, or plain HTML + CSS + TypeScript.
 
 Write real TypeScript, get live reload inside GAS dialogs, call server functions with full type inference — then ship everything as the two files GAS actually understands.
 
@@ -37,22 +37,26 @@ Running the CLI starts an interactive prompt:
 
   Which frontend framework?
   ● React (TypeScript + SWC)
-  ○ Vue 3
-  ○ Svelte 5
-  ○ SolidJS
+  ○ Vue (Vue 3 + TypeScript)
+  ○ Svelte (Svelte 5 + TypeScript)
+  ○ SolidJS (SolidJS + TypeScript)
+  ○ Vanilla (Plain HTML + CSS + TypeScript, no framework)
 
-  Select addons:
+  Select addons (space to toggle, enter to confirm):
   ◼ Tailwind CSS v4
-  ◼ shadcn/ui
+  ◼ shadcn/ui          ← only shown when React is selected
   ◻ Commitlint + Lefthook
   ◻ ESLint
 
   Which package manager?
-  ● bun   ○ pnpm   ○ npm   ○ yarn
+  ● bun (detected)   ○ pnpm   ○ npm   ○ yarn
 
-  Install dependencies now?  Yes
-  Initialize a git repository? Yes
+  Setup options:
+  ◼ Install dependencies
+  ◼ Initialize git repository
 ```
+
+The package manager prompt pre-selects whichever manager was used to run the CLI (detected from lockfiles or `npm_config_user_agent`).
 
 > **Note:** All command examples below use `npm run`. Substitute `bun run`, `pnpm run`, or `yarn` depending on what you chose at scaffold time.
 
@@ -66,36 +70,40 @@ All project types share the same Vite monorepo structure and the same workflow. 
 
 ```
 my-gas-app/
+├── .vscode/
+│   └── settings.json             ← IDE settings (Prettier, Tailwind, TypeScript)
 ├── apps/
 │   └── my-gas-app/
-│       ├── env.ts                    ← Runtime env — gitignored
+│       ├── env.ts                ← Runtime env — gitignored
+│       ├── env.example.ts        ← Template for env.ts (committed)
 │       └── dialogs/
 │           ├── sidebar/
-│           │   ├── index.html        ← importmap + entry script (no bundled deps)
+│           │   ├── index.html    ← importmap + entry script (no bundled deps)
 │           │   └── src/
-│           │       ├── main.tsx
-│           │       └── App.tsx
+│           │       ├── main.ts(x)
+│           │       └── App.ts(x)
 │           └── about/
 │               ├── index.html
 │               └── src/
-│                   ├── main.tsx
-│                   └── App.tsx
+│                   ├── main.ts(x)
+│                   └── App.ts(x)
 ├── packages/
 │   ├── server/
 │   │   └── src/
-│   │       ├── index.ts              ← Export server functions here → auto-typed on client
-│   │       ├── ui.ts                 ← onOpen(), openSidebar(), openAboutDialog()
-│   │       └── env.ts                ← Server-side secrets — gitignored
+│   │       ├── index.ts          ← Export server functions here → auto-typed on client
+│   │       ├── ui.ts             ← onOpen(), openSidebar(), openAboutDialog()
+│   │       └── env.ts            ← Server-side secrets — gitignored
 │   ├── shared/
 │   │   └── src/
-│   │       ├── utils/server.ts       ← Typed serverFunctions proxy
-│   │       └── styles/global.css     ← Global styles shared by all dialogs
+│   │       ├── utils/server.ts   ← Typed serverFunctions proxy
+│   │       └── styles/global.css ← Global styles shared by all dialogs
 │   └── ui/
 │       └── src/
-│           └── index.ts              ← Shared component library
+│           └── index.ts          ← Shared component library
 ├── vite.config.ts
-├── appsscript.json                   ← GAS manifest with OAuth scopes
-└── package.json                      ← Workspaces + all scripts
+├── appsscript.json               ← GAS manifest with OAuth scopes
+├── README.md                     ← Project-specific readme with dev workflow
+└── package.json                  ← Workspaces + all scripts
 ```
 
 ### Step 1 — Connect to Google
@@ -146,6 +154,46 @@ npm run deploy
 ```
 
 Builds all dialogs to single inlined HTML files, builds the server to a single ES bundle (exports stripped for GAS compatibility), and pushes to GAS.
+
+---
+
+## Frameworks
+
+### React
+
+TypeScript + SWC. Includes JSX transform, React 19, and optionally shadcn/ui.
+
+### Vue
+
+Vue 3 + TypeScript via `@vitejs/plugin-vue`.
+
+### Svelte
+
+Svelte 5 + TypeScript via `@sveltejs/vite-plugin-svelte`.
+
+### SolidJS
+
+SolidJS + TypeScript via `vite-plugin-solid`.
+
+### Vanilla
+
+No framework dependencies. Uses a class-based `App` pattern with raw DOM manipulation and TypeScript. A good choice when bundle size matters most or when you don't need a reactive framework.
+
+```typescript
+// apps/my-gas-app/dialogs/sidebar/src/App.ts
+export class App {
+  private root: HTMLElement;
+
+  constructor(root: HTMLElement) {
+    this.root = root;
+    this.render();
+  }
+
+  private render(): void {
+    this.root.innerHTML = `<h1>Hello from GAS!</h1>`;
+  }
+}
+```
 
 ---
 
@@ -251,7 +299,6 @@ Google OAuth is granular — users are shown each requested scope individually a
 
 ```typescript
 // Use requireScopes() when a function only needs a subset of your declared scopes.
-// Here, fetchAndLog() only needs external request access — not triggers or mail.
 export const fetchAndLog = () => {
   ScriptApp.requireScopes(ScriptApp.AuthMode.FULL, [
     "https://www.googleapis.com/auth/script.external_request",
@@ -268,15 +315,7 @@ export const fetchAndLog = () => {
 // Use requireAllScopes() when a function relies on every scope in appsscript.json.
 export const fullSync = () => {
   ScriptApp.requireAllScopes(ScriptApp.AuthMode.FULL);
-
-  const response = UrlFetchApp.fetch("https://api.example.com/data");
-  const data = JSON.parse(response.getContentText());
-
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  sheet.getRange(sheet.getLastRow() + 1, 1).setValue(data.value);
-
-  ScriptApp.newTrigger("fullSync").timeBased().everyHours(1).create();
-  MailApp.sendEmail(Session.getActiveUser().getEmail(), "Sync complete", "Data updated.");
+  // ...
 };
 ```
 
@@ -325,14 +364,7 @@ Generate a new dialog entrypoint:
 npx create-gas-app add dialog settings
 ```
 
-**Register it in `vite.config.ts`:**
-
-```typescript
-const entrypoints = [
-  { name: "Sidebar",  filename: "sidebar",  appDir: "sidebar",  template: "index.html" },
-  { name: "Settings", filename: "settings", appDir: "settings", template: "index.html" }, // ← add
-];
-```
+This scaffolds the dialog files **and automatically patches `vite.config.ts`** to register the new entrypoint — no manual edits required.
 
 **Add an opener in `packages/server/src/ui.ts`:**
 
@@ -371,7 +403,7 @@ The generated `onOpen` in `packages/server/src/ui.ts` runs every time the file i
 
 ```typescript
 export const onOpen = () => {
-  SpreadsheetApp.getUi() // swap for DocumentApp / FormApp as needed
+  SpreadsheetApp.getUi()
     .createAddonMenu()
     .addItem("Open", "openSidebar")
     .addItem("Settings", "openSettingsDialog") // ← add
@@ -387,7 +419,7 @@ export const onOpen = () => {
     .createAddonMenu()
     .addItem("Open", "openSidebar")
     .addSeparator()
-    .addItem("Import data", "importDataFromSheet") // ← runs directly, no dialog
+    .addItem("Import data", "importDataFromSheet")
     .addToUi();
 };
 ```
@@ -516,6 +548,7 @@ Generates `eslint.config.js` with ESLint 9 flat config, TypeScript support, and 
 | Vue       | `eslint-plugin-vue` |
 | Svelte    | `eslint-plugin-svelte` |
 | SolidJS   | `eslint-plugin-solid` |
+| Vanilla   | TypeScript rules only |
 
 Adds `lint` and `lint:fix` scripts to `package.json`.
 
@@ -537,8 +570,6 @@ Run from the project root. The command auto-detects your framework and project n
 ```bash
 npm install
 ```
-
-For `tailwind`, the command also prints the exact lines to add to `vite.config.ts` since that file may have been edited.
 
 > **Note:** `shadcn` requires React and Tailwind to be installed first.
 
@@ -562,6 +593,7 @@ For `tailwind`, the command also prints the exact lines to add to `vite.config.t
 | `clasp:open:script`    | Open the Apps Script editor in your browser                 |
 | `clasp:open:container` | Open the linked Sheets/Docs/Forms file                      |
 | `format`               | Format all files with Prettier                              |
+| `type-check`           | Run `tsc --noEmit` across the whole monorepo                |
 | `lint`                 | Run ESLint (only if ESLint addon was selected)              |
 | `lint:fix`             | Run ESLint with auto-fix                                    |
 
