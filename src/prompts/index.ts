@@ -158,22 +158,17 @@ export async function gatherProjectConfig(
     process.exit(0);
   }
 
-  const installDeps = (await p.confirm({
-    message: "Install dependencies now?",
-    initialValue: true,
-  })) as boolean;
+  const setupOptions = (await p.multiselect({
+    message: "Setup options:",
+    options: [
+      { value: "installDeps", label: "Install dependencies", hint: `run ${packageManager} install` },
+      { value: "initGit", label: "Initialize git repository", hint: "git init + initial commit" },
+    ],
+    required: false,
+    initialValues: ["installDeps", "initGit"],
+  })) as string[];
 
-  if (p.isCancel(installDeps)) {
-    p.cancel("Operation cancelled.");
-    process.exit(0);
-  }
-
-  const initGit = (await p.confirm({
-    message: "Initialize a git repository?",
-    initialValue: true,
-  })) as boolean;
-
-  if (p.isCancel(initGit)) {
+  if (p.isCancel(setupOptions)) {
     p.cancel("Operation cancelled.");
     process.exit(0);
   }
@@ -184,7 +179,7 @@ export async function gatherProjectConfig(
     framework,
     addons: finalAddons,
     packageManager,
-    installDeps: installDeps as boolean,
-    initGit: initGit as boolean,
+    installDeps: setupOptions.includes("installDeps"),
+    initGit: setupOptions.includes("initGit"),
   };
 }
