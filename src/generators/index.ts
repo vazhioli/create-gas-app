@@ -4,7 +4,7 @@ import pc from "picocolors";
 import path from "path";
 import type { ProjectConfig } from "../types.js";
 import { installDependencies } from "../utils/pkgManager.js";
-import { initGitRepo, isGitInstalled } from "../utils/git.js";
+import { initGitRepo, isGitInstalled, isGitUserConfigured } from "../utils/git.js";
 import { generateBase } from "./base.js";
 import { generateServer } from "./server.js";
 import { generateClient } from "./client.js";
@@ -92,12 +92,26 @@ export async function scaffoldProject(
 
   if (config.initGit) {
     if (await isGitInstalled()) {
-      spinner.start("Initialising git repository...");
-      try {
-        await initGitRepo(root);
-        spinner.stop("Git repository initialised.");
-      } catch {
-        spinner.error("Git init failed — run it manually.");
+      if (!(await isGitUserConfigured())) {
+        p.note(
+          [
+            "Set your git identity first, then run:",
+            `  ${pc.cyan("git init && git add -A && git commit -m 'chore: initial commit'")}`,
+            "",
+            "To configure git globally:",
+            `  ${pc.cyan('git config --global user.name "Your Name"')}`,
+            `  ${pc.cyan('git config --global user.email "you@example.com"')}`,
+          ].join("\n"),
+          pc.yellow("Git user not configured — skipping initial commit"),
+        );
+      } else {
+        spinner.start("Initialising git repository...");
+        try {
+          await initGitRepo(root);
+          spinner.stop("Git repository initialised.");
+        } catch {
+          spinner.error("Git init failed — run it manually.");
+        }
       }
     } else {
       p.note("git is not installed. Skipping.", pc.yellow("Warning"));

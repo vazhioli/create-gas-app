@@ -701,6 +701,12 @@ import { App } from "./App";
 new App(document.getElementById("root")!);
 `;
 
+// About dialog: imperative top-level code — no App class, so just bootstrap CSS + module
+const vanillaAboutMainTs = (projectName: string) =>
+  `import "@${projectName}/shared/styles/global.css";
+import "./App";
+`;
+
 const vanillaAppTs = (
   projectName: string,
   hasTailwind: boolean,
@@ -968,7 +974,7 @@ function getEntryExt(fw: Framework): { mainExt: string; appExt: string } {
 function getFrameworkFiles(
   config: ProjectConfig,
   projectName: string,
-): { mainContent: string; appContent: string; aboutAppContent: string } {
+): { mainContent: string; appContent: string; aboutAppContent: string; aboutMainContent?: string } {
   const tw = hasTailwind(config.addons);
   const hasShadcn = config.addons.includes("shadcn");
   switch (config.framework) {
@@ -1001,6 +1007,8 @@ function getFrameworkFiles(
         mainContent: vanillaMainTs(projectName),
         appContent: vanillaAppTs(projectName, tw, config.addonType),
         aboutAppContent: vanillaAboutAppTs(projectName, tw),
+        // About dialog is imperative (no App class) — needs its own main.ts
+        aboutMainContent: vanillaAboutMainTs(projectName),
       };
   }
 }
@@ -1025,7 +1033,7 @@ export async function generateClient(
   const isAddon = config.addonType !== "standalone";
   const dialogDir = pp("apps", config.projectName, "dialogs", "sidebar");
   const { mainExt, appExt } = getEntryExt(config.framework);
-  const { mainContent, appContent, aboutAppContent } = getFrameworkFiles(config, config.projectName);
+  const { mainContent, appContent, aboutAppContent, aboutMainContent } = getFrameworkFiles(config, config.projectName);
 
   await writeFile(
     `${dialogDir}/index.html`,
@@ -1041,7 +1049,7 @@ export async function generateClient(
       `${aboutDir}/index.html`,
       indexHtml("About", `./src/main.${mainExt}`, config.framework),
     );
-    await writeFile(`${aboutDir}/src/main.${mainExt}`, mainContent);
+    await writeFile(`${aboutDir}/src/main.${mainExt}`, aboutMainContent ?? mainContent);
     await writeFile(`${aboutDir}/src/App.${appExt}`, aboutAppContent);
   }
 }
