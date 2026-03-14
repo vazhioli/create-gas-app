@@ -93,30 +93,36 @@ export async function gatherProjectConfig(
     process.exit(0);
   }
 
+  const addonOptions = [
+    {
+      value: "tailwind",
+      label: "Tailwind CSS",
+      hint: "v4 with Vite plugin",
+    },
+    ...(framework === "react"
+      ? [
+          {
+            value: "shadcn",
+            label: "shadcn/ui",
+            hint: "Component library for React",
+          },
+        ]
+      : []),
+    {
+      value: "commitlint",
+      label: "Commitlint + Lefthook",
+      hint: "Conventional commits + git hooks",
+    },
+    {
+      value: "eslint",
+      label: "ESLint",
+      hint: "Flat config with TypeScript + framework rules",
+    },
+  ];
+
   const selectedAddons = (await p.multiselect({
     message: "Select addons (space to toggle, enter to confirm):",
-    options: [
-      {
-        value: "tailwind",
-        label: "Tailwind CSS",
-        hint: "v4 with Vite plugin",
-      },
-      {
-        value: "shadcn",
-        label: "shadcn/ui",
-        hint: `Component library — ${framework === "react" ? "full support" : "React only, skip or switch framework"}`,
-      },
-      {
-        value: "commitlint",
-        label: "Commitlint + Lefthook",
-        hint: "Conventional commits + git hooks",
-      },
-      {
-        value: "eslint",
-        label: "ESLint",
-        hint: "Flat config with TypeScript + framework rules",
-      },
-    ],
+    options: addonOptions,
     required: false,
     initialValues: ["tailwind"],
   })) as Addon[];
@@ -126,17 +132,9 @@ export async function gatherProjectConfig(
     process.exit(0);
   }
 
-  // Warn if shadcn is selected with non-React framework
-  const addons = selectedAddons ?? [];
-  if (addons.includes("shadcn") && framework !== "react") {
-    p.note(
-      `shadcn/ui will be ${pc.yellow("skipped")} — it currently only supports React.\nYou can add it later by switching to React.`,
-      "Note",
-    );
-  }
-
   // shadcn requires tailwind — auto-add
-  const hasShadcn = addons.includes("shadcn") && framework === "react";
+  const addons = selectedAddons ?? [];
+  const hasShadcn = addons.includes("shadcn");
   const finalAddons: Addon[] = [...addons.filter((a) => a !== "shadcn")];
   if (hasShadcn) {
     if (!finalAddons.includes("tailwind")) finalAddons.push("tailwind");
@@ -152,7 +150,7 @@ export async function gatherProjectConfig(
       { value: "npm", label: "npm", hint: detectedPm === "npm" ? "detected" : "" },
       { value: "yarn", label: "yarn", hint: detectedPm === "yarn" ? "detected" : "" },
     ],
-    initialValue: "bun",
+    initialValue: detectedPm,
   })) as PackageManager;
 
   if (p.isCancel(packageManager)) {
