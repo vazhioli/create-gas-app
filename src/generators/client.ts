@@ -207,19 +207,32 @@ ${infoRowsTailwind}
 
   const body = uiMode === "inline" ? bodyInline : bodyTailwind;
 
+  const errorEl =
+    uiMode === "inline"
+      ? `<div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "#ef4444", fontSize: "13px", padding: "16px", textAlign: "center" }}>{error}</div>`
+      : `<div className="flex min-h-screen items-center justify-center p-4 text-center text-sm text-destructive">{error}</div>`;
+
   return `import { serverFunctions } from "@${projectName}/shared/utils/server";
 import { useEffect, useState } from "react";
 ${importLine}
 
 export function App() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<{ email: string } | null>(null);${containerState}
 
   useEffect(() => {
-    ${effectBody}
+    ${effectBody.replace(
+      /\}\);$/,
+      `}).catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setLoading(false);
+    });`,
+    )}
   }, []);
 
   if (loading) return ${loadingEl};
+  if (error) return ${errorEl};
 
   return (${body});
 }
@@ -299,20 +312,31 @@ const vueAppVue = (projectName: string, hasTailwind: boolean, addonType: GasAddo
       : `\n    <div style="margin-top: auto; display: flex; justify-content: flex-end"><button @click="() => serverFunctions.openAboutDialog()" style="border: 1px solid #e2e8f0; background: #fff; color: #334155; padding: 8px 16px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600">About</button></div>`
     : "";
 
+  const errorTmpl = hasTailwind
+    ? `<div v-else-if="error" class="flex min-h-screen items-center justify-center p-4 text-center text-sm text-destructive">{{ error }}</div>`
+    : `<div v-else-if="error" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; color: #ef4444; font-size: 13px; padding: 16px; text-align: center">{{ error }}</div>`;
+
   return `<script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { serverFunctions } from "@${projectName}/shared/utils/server";
 
 const loading = ref(true);
+const error = ref<string | null>(null);
 const user = ref<{ email: string } | null>(null);${containerRef}
 
 onMounted(async () => {
-  ${mountedBody}
+  try {
+    ${mountedBody}
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "Something went wrong.";
+    loading.value = false;
+  }
 });
 </script>
 
 <template>
   ${loadingTmpl}
+  ${errorTmpl}
   ${wrapper}
     ${titleEl}
     ${infoBlock}${aboutBtn}
@@ -385,21 +409,33 @@ const svelteAppSvelte = (projectName: string, hasTailwind: boolean, addonType: G
       : `\n<div style="margin-top: auto; display: flex; justify-content: flex-end"><button onclick={() => serverFunctions.openAboutDialog()} style="border: 1px solid #e2e8f0; background: #fff; color: #334155; padding: 8px 16px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600">About</button></div>`
     : "";
 
+  const errorEl = hasTailwind
+    ? `<div class="flex min-h-screen items-center justify-center p-4 text-center text-sm text-destructive">{error}</div>`
+    : `<div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; color: #ef4444; font-size: 13px; padding: 16px; text-align: center">{error}</div>`;
+
   return `<script lang="ts">
   import { onMount } from "svelte";
   import { serverFunctions } from "@${projectName}/shared/utils/server";
 
   let loading = $state(true);
+  let error = $state<string | null>(null);
   let user = $state<{ email: string } | null>(null);${containerState}
 
   onMount(async () => {
-    ${mountBody}
-    loading = false;
+    try {
+      ${mountBody}
+    } catch (err) {
+      error = err instanceof Error ? err.message : "Something went wrong.";
+    } finally {
+      loading = false;
+    }
   });
 </script>
 
 {#if loading}
 <div ${hasTailwind ? 'class="flex min-h-screen items-center justify-center text-sm text-muted-foreground"' : 'style="display: flex; align-items: center; justify-content: center; min-height: 100vh; color: #94a3b8; font-size: 13px"'}>Loading workspace…</div>
+{:else if error}
+${errorEl}
 {:else}
 ${wrapper}
   ${titleEl}
@@ -481,26 +517,38 @@ ${allRows.map(([l, e], i) => {
       : `\n        <div style={{ marginTop: "auto", display: "flex", justifyContent: "flex-end" }}><button onClick={() => serverFunctions.openAboutDialog()} style={{ border: "1px solid #e2e8f0", background: "#fff", color: "#334155", padding: "8px 16px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>About</button></div>`
     : "";
 
+  const errorEl = hasTailwind
+    ? `<div class="flex min-h-screen items-center justify-center p-4 text-center text-sm text-destructive">{error()}</div>`
+    : `<div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "#ef4444", fontSize: "13px", padding: "16px", textAlign: "center" }}>{error()}</div>`;
+
   return `import { createSignal, onMount } from "solid-js";
 import { serverFunctions } from "@${projectName}/shared/utils/server";
 
 export function App() {
   const [loading, setLoading] = createSignal(true);
+  const [error, setError] = createSignal<string | null>(null);
   const [user, setUser] = createSignal<{ email: string } | null>(null);${containerSignal}
 
   onMount(async () => {
-    ${mountBody}
-    setLoading(false);
+    try {
+      ${mountBody}
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   });
 
   return loading()
     ? ${loadingEl}
-    : (
-      ${wrapper}
-        ${titleEl}
-        ${infoBlock}${aboutBtn}
-      </div>
-    );
+    : error()
+      ? ${errorEl}
+      : (
+        ${wrapper}
+          ${titleEl}
+          ${infoBlock}${aboutBtn}
+        </div>
+      );
 }
 `;
 };
