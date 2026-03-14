@@ -118,6 +118,13 @@ export async function scaffoldProject(
       ? `${run} clasp:open:script`
       : `${run} clasp:open:container`;
 
+  const gasTypeLabel: Record<string, string> = {
+    sheets: "Sheets add-on",
+    docs: "Docs add-on",
+    forms: "Forms add-on",
+    standalone: "Standalone web app",
+  };
+
   p.note(
     [
       `Project created at ${pc.cyan(rel + "/")}`,
@@ -128,7 +135,7 @@ export async function scaffoldProject(
       `  ${1 + stepOffset}. ${pc.dim("# Authenticate with Google:")}`,
       `     ${pc.cyan(`${run} clasp:login`)}`,
       "",
-      `  ${2 + stepOffset}. ${pc.dim("# Create and link your GAS project:")}`,
+      `  ${2 + stepOffset}. ${pc.dim(`# Create and link your GAS project (pre-configured as ${gasTypeLabel[config.addonType]}):`)}`,
       `     ${pc.cyan(`${run} clasp:create`)}`,
       "",
       `  ${3 + stepOffset}. ${pc.dim("# Build and deploy once:")}`,
