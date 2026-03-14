@@ -188,7 +188,7 @@ export default async ({
     // Dev: serve apps/ locally — each app at /<appDir>/index.html
     return defineConfig({
       plugins: [${fwPlugin}${tailwindPlugin}].filter(Boolean),
-      resolve: { ...sharedResolve, dedupe: [] },
+      resolve: sharedResolve,
       server: devServerOptions,
       root: APPS_ROOT,
     });

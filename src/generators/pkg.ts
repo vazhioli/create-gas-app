@@ -20,6 +20,7 @@ function getScripts(
   addonType: GasAddonType,
   projectName: string,
   hasEslint = false,
+  hasCommitlint = false,
 ) {
   const r = (s: string) => `${pm} run ${s}`;
   const claspType = addonType;
@@ -44,7 +45,7 @@ function getScripts(
       "mkdir -p certs && mkcert -key-file ./certs/key.pem -cert-file ./certs/cert.pem localhost 127.0.0.1",
     "type-check": "tsc --noEmit",
     format: "prettier --write --ignore-unknown .",
-    prepare: "lefthook install || true",
+    ...(hasCommitlint ? { prepare: "lefthook install || true" } : {}),
     ...(hasEslint ? {
       lint: "eslint .",
       "lint:fix": "eslint . --fix",
@@ -118,12 +119,15 @@ export async function generatePackageJson(
     version: "0.1.0",
     private: true,
     type: "module",
-    workspaces: ["apps/*", "packages/*"],
+    // pnpm uses pnpm-workspace.yaml — omit the field to avoid the "workspaces
+    // field is not supported" warning pnpm emits when it finds both files.
+    ...(config.packageManager !== "pnpm" ? { workspaces: ["apps/*", "packages/*"] } : {}),
     scripts: getScripts(
       config.packageManager,
       config.addonType,
       config.projectName,
       config.addons.includes("eslint"),
+      config.addons.includes("commitlint"),
     ),
     dependencies,
     devDependencies,
