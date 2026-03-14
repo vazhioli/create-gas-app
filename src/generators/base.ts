@@ -211,6 +211,51 @@ const serverTsconfig = (rootRelative: string) => ({
   include: ["src/**/*", "templates/**/*"],
 });
 
+// ─── .vscode/ ────────────────────────────────────────────────────────────────
+
+const vscodeSettings = (config: ProjectConfig) => {
+  const settings: Record<string, unknown> = {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+    },
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+  };
+
+  if (config.framework === "svelte") {
+    settings["[svelte]"] = { "editor.defaultFormatter": "svelte.svelte-vscode" };
+  } else if (config.framework === "vue") {
+    settings["[vue]"] = { "editor.defaultFormatter": "Vue.volar" };
+  }
+
+  if (config.addons.includes("eslint")) {
+    (settings["editor.codeActionsOnSave"] as Record<string, string>)["source.fixAll.eslint"] = "explicit";
+  }
+
+  return settings;
+};
+
+const vscodeExtensions = (config: ProjectConfig) => {
+  const recommendations = [
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+  ];
+
+  if (config.framework === "svelte") recommendations.push("svelte.svelte-vscode");
+  if (config.framework === "vue") recommendations.push("Vue.volar");
+  if (config.framework === "react") recommendations.push("bradlc.vscode-tailwindcss");
+
+  if (config.addons.includes("tailwind") || config.addons.includes("shadcn")) {
+    if (!recommendations.includes("bradlc.vscode-tailwindcss")) {
+      recommendations.push("bradlc.vscode-tailwindcss");
+    }
+  }
+
+  return { recommendations };
+};
+
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 export async function generateBase(
@@ -232,6 +277,8 @@ export async function generateBase(
   await writeFile(pp(".gitignore"), GITIGNORE);
   await writeFile(pp(".prettierignore"), PRETTIERIGNORE);
   await writeJsonFile(pp("tsconfig.json"), tsconfigJson(config));
+  await writeJsonFile(pp(".vscode", "settings.json"), vscodeSettings(config));
+  await writeJsonFile(pp(".vscode", "extensions.json"), vscodeExtensions(config));
   await writeFile(
     pp("packages", "server", "templates", "dev-dialog-bridge.html"),
     devServerWrapperHtml(),
