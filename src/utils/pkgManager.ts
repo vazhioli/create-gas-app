@@ -1,11 +1,27 @@
 import { execa } from "execa";
+import fs from "fs";
+import path from "path";
 import type { PackageManager } from "../types.js";
 
 /**
- * Detects which package manager was used to invoke the CLI.
- * `npm create gas-app` sets npm_config_user_agent to "npm/x.x.x"
+ * Detects the package manager from lockfiles in the current or parent directories,
+ * falling back to the npm_config_user_agent env var set by the invoking package manager.
  */
 export function detectPackageManager(): PackageManager {
+  // Walk up from cwd looking for lockfiles (up to 3 levels)
+  let dir = process.cwd();
+  for (let i = 0; i < 3; i++) {
+    if (fs.existsSync(path.join(dir, "bun.lockb")) || fs.existsSync(path.join(dir, "bun.lock"))) return "bun";
+    if (fs.existsSync(path.join(dir, "pnpm-lock.yaml"))) return "pnpm";
+    if (fs.existsSync(path.join(dir, "yarn.lock"))) return "yarn";
+    if (fs.existsSync(path.join(dir, "package-lock.json"))) return "npm";
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  // Fall back to npm_config_user_agent set by the invoking package manager
+  // e.g. `npm create gas-app` sets this to "npm/x.x.x"
   const userAgent = process.env.npm_config_user_agent ?? "";
   if (userAgent.startsWith("pnpm")) return "pnpm";
   if (userAgent.startsWith("yarn")) return "yarn";
