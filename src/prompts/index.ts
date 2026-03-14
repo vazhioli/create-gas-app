@@ -10,8 +10,8 @@ import type {
 import { detectPackageManager } from "../utils/pkgManager.js";
 import { NAME_PATTERN } from "../constants/scaffold.js";
 
-function validateProjectName(value: string): string | undefined {
-  const trimmed = value.trim();
+function validateProjectName(value: string | undefined): string | undefined {
+  const trimmed = (value ?? "").trim();
   if (!trimmed) return "Project name is required.";
   if (!NAME_PATTERN.test(trimmed)) {
     return "Only letters, numbers, hyphens, and underscores are allowed.";

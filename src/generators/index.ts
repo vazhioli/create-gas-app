@@ -44,7 +44,7 @@ export async function scaffoldProject(
 
     spinner.stop("Project files created.");
   } catch (err) {
-    spinner.stop("Failed to scaffold project files.");
+    spinner.error("Failed to scaffold project files.");
     throw err;
   }
 
@@ -60,7 +60,7 @@ export async function scaffoldProject(
       depsInstalled = true;
       spinner.stop("Dependencies installed.");
     } catch {
-      spinner.stop(pc.yellow("Dependency install failed — run it manually."));
+      spinner.error("Dependency install failed — run it manually.");
     }
   }
 
@@ -74,7 +74,7 @@ export async function scaffoldProject(
       await x(config.packageManager, formatArgs, { nodeOptions: { cwd: root }, throwOnError: true });
       spinner.stop("Formatting complete.");
     } catch {
-      spinner.stop(pc.yellow("Formatting failed — run it manually."));
+      spinner.error("Formatting failed — run it manually.");
     }
   }
 
@@ -97,7 +97,7 @@ export async function scaffoldProject(
         await initGitRepo(root);
         spinner.stop("Git repository initialised.");
       } catch {
-        spinner.stop(pc.yellow("Git init failed — run it manually."));
+        spinner.error("Git init failed — run it manually.");
       }
     } else {
       p.note("git is not installed. Skipping.", pc.yellow("Warning"));
